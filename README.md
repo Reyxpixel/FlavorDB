@@ -1,21 +1,84 @@
-# FlavorDB — Rarity-Weighted Ranking Project
 
-Prototype for ranking flavor molecules per ingredient using **Importance(m) = 1 / df(m)** and computing **Pair(A,B)** over shared molecules.
 
-## Quick start
+## Project structure
+
+```
+flavordb/
+├── package.json          # root — runs both server and client
+├── server/
+│   └── index.js          # Express API server (port 5000)
+└── client/
+    ├── package.json
+    ├── public/index.html
+    └── src/
+        ├── index.js
+        ├── index.css
+        ├── App.jsx           # view router (browse / molecules / pairings)
+        ├── categories.js     # category → colour map
+        └── components/
+            ├── Shared.jsx    # Spinner, CatTag, RarityChip, Expander, bars
+            ├── BrowsePage.jsx
+            ├── MoleculesPage.jsx
+            └── PairingsPage.jsx
+```
+
+---
+
+## Setup
+
+**Prerequisites:** Node.js ≥ 18, npm ≥ 9
 
 ```bash
-cd prototype
-npm install
+# 1. Install all dependencies (root + client)
+npm run install-all
+
+# 2. Start both server and client together
 npm run dev
 ```
 
-See [prototype/README.md](prototype/README.md) for API endpoints, VPN/proxy setup, and mock mode.
+The server starts at **http://localhost:5000**  
+The React app starts at **http://localhost:3000** (auto-opens in browser)
 
-## Postman collections
+> The React dev server proxies all `/api/…` requests to the Express server,
+> so you only need to open `localhost:3000`.
 
-- `FlavorDB_Complete.postman_collection.json` — original 40 endpoints
-- `FlavorDB_Complete.postman_collection (1).json` — adds three endpoints for your use case:
-  - `GET /entities/by-id/{id}/molecules` — full profiles, rarity-sorted
-  - `GET /entities/by-id/{id}/molecules-compact` — `pubchem_id` + `common_name`, rarity-sorted
-  - `GET /molecules_data/by-id/{pubchemId}/entities` — reverse lookup for **df(m)**
+---
+
+## API routes (Express server)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/search?q=mango&page=0` | Search entities by name |
+| GET | `/api/molecules/:entityId` | Get ranked molecules (importance = 1/df(m)) |
+| GET | `/api/pairings/:entityId?entityName=Mango` | Stream pairing results via SSE |
+
+The pairings endpoint uses **Server-Sent Events** so the browser receives
+live progress updates while the server scores all ~936 FlavorDB ingredients.
+
+---
+
+## How the ranking works
+
+For each molecule `m` in ingredient `A`:
+
+```
+df(m)         = number of ingredients in FlavorDB that contain molecule m
+Importance(m) = 1 / df(m)
+```
+
+Molecules are ranked by `Importance` descending — rarer molecules score higher.
+
+For pairing ingredient `A` with `B`:
+
+```
+Pair(A, B) = Σ Importance(m)  for all m shared by A and B
+```
+
+Ingredients are ranked by `Pair` score descending.
+
+
+---
+
+## Molecule detail view
+
+Clicking a molecule name from the molecules list opens a JSmol-backed molecule detail page with a 2D image toggle and a list of ingredients that contain the molecule.

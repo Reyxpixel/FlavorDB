@@ -1,0 +1,40 @@
+const CATEGORY_COLORS = {
+  fruit:               '#2e7d32',
+  berry:               '#ad1457',
+  fruitcitrus:         '#e65100',
+  fruitessence:        '#6a1b9a',
+  vegetable:           '#2e7d32',
+  vegetablefruit:      '#c62828',
+  vegetablegourd:      '#2e7d32',
+  vegetableroot:       '#bf360c',
+  vegetablestem:       '#2e7d32',
+  vegetabletuber:      '#4527a0',
+  cabbage:             '#2e7d32',
+  herb:                '#1b5e20',
+  spice:               '#b71c1c',
+  plant:               '#1b5e20',
+  plantderivative:     '#1b5e20',
+  fungus:              '#4a148c',
+  meat:                '#b71c1c',
+  fish:                '#01579b',
+  seafood:             '#006064',
+  dairy:               '#f57f17',
+  bakery:              '#e65100',
+  cereal:              '#f9a825',
+  maize:               '#f9a825',
+  legume:              '#558b2f',
+  nutseed:             '#bf360c',
+  beverage:            '#0277bd',
+  beveragealcoholic:   '#880e4f',
+  beveragecaffeinated: '#4a148c',
+  essentialoil:        '#006064',
+  flower:              '#880e4f',
+  dish:                '#37474f',
+  additive:            '#37474f',
+  animalproduct:       '#e65100',
+};
+
+export function catColor(raw = '') {
+  const key = raw.toLowerCase().replace(/[\s\-_]/g, '');
+  return CATEGORY_COLORS[key] || '#546e7a';
+}
