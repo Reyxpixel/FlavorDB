@@ -78,6 +78,7 @@ table.fdb-table tbody td.mono   { font-family: 'Courier New', monospace; font-si
 
 .ent-link  { color: #1565c0; font-weight: 600; cursor: pointer; }
 .ent-link:hover { text-decoration: underline; }
+button.ent-link { background: none; border: none; padding: 0; font: inherit; outline: inherit; }
 
 /* ── Category tag ── */
 .cat-tag {

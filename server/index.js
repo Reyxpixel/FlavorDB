@@ -688,7 +688,7 @@ async function getMoleculeOverviewCached(pubchemId) {
       (async () => {
         const [entitiesPayload, detailsHtmlPayload, morePropertiesPayload, pubchemProps] = await Promise.allSettled([
           getMoleculeEntitiesPayloadCached(pubchemId),
-          fdbGet('/molecules_details', { id: pubchemId }),
+          axios.get('https://cosylab.iiitd.edu.in/flavordb/molecules_details', { params: { id: pubchemId }, timeout: 15000 }).then(res => res.data),
           fdbGet('/more_properties/by-pubchemId-range', { min: pubchemId, max: pubchemId, page: 0, size: 20 }),
           fetchPubChemProperties(pubchemId),
         ]);

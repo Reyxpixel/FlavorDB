@@ -308,20 +308,20 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
             </button>
           </div>
 
-          {activeTab === 'image' && (
-            <div className="molecule-preview">
-              <img
-                className="molecule-preview-image"
-                src={pubchemImage}
-                alt={molecule.name}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            </div>
-          )}
+          <div style={{ display: activeTab === 'image' ? 'flex' : 'none' }} className="molecule-preview">
+            <img
+              className="molecule-preview-image"
+              src={pubchemImage}
+              alt={molecule.name}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
 
-          {activeTab === 'jsmol' && <JSmolViewer pubchemId={molecule.pubchem_id} active />}
+          <div style={{ display: activeTab === 'jsmol' ? 'block' : 'none', width: '100%' }}>
+            <JSmolViewer pubchemId={molecule.pubchem_id} active={true} />
+          </div>
         </div>
       </div>
 
@@ -348,7 +348,7 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
         title={`Entities that contain ${molecule.name}`}
         meta={loadingEntities ? 'Loading containing ingredients…' : `${containingEntities.length} ingredients`}
       >
-        {loadingEntities && <Spinner text="Loading containing ingredients…" />}
+        {loadingEntities && <div style={{ padding: '0 1rem' }}><Spinner text="Loading containing ingredients…" /></div>}
         {entityError && (
           <p style={{ color: '#c62828', padding: '0.8rem 1rem' }}>
             Error: {entityError}
