@@ -49,7 +49,7 @@ The React app starts at **http://localhost:3000** (auto-opens in browser)
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | `/api/search?q=mango&page=0` | Search entities by name |
-| GET | `/api/molecules/:entityId` | Get ranked molecules (importance = 1/df(m)) |
+| GET | `/api/molecules/:entityId` | Get ranked molecules for an ingredient |
 | GET | `/api/pairings/:entityId?entityName=Mango` | Stream pairing results via SSE |
 
 The pairings endpoint uses **Server-Sent Events** so the browser receives
@@ -59,22 +59,9 @@ live progress updates while the server scores all ~936 FlavorDB ingredients.
 
 ## How the ranking works
 
-For each molecule `m` in ingredient `A`:
+Molecules are ranked by the app’s internal rarity-based scoring, so rarer molecules appear higher in the list.
 
-```
-df(m)         = number of ingredients in FlavorDB that contain molecule m
-Importance(m) = 1 / df(m)
-```
-
-Molecules are ranked by `Importance` descending — rarer molecules score higher.
-
-For pairing ingredient `A` with `B`:
-
-```
-Pair(A, B) = Σ Importance(m)  for all m shared by A and B
-```
-
-Ingredients are ranked by `Pair` score descending.
+Pairing scores are computed from shared molecules between two ingredients, and ingredients are ranked by that score descending.
 
 
 ---

@@ -1,0 +1,3 @@
+# FlavorDBW Deployment Changes
+
+FlavorDBW was configured to run under `https://cosylab.iiitd.edu.in/flavordbw/` because `/flavordb/` and `/flavordb2/` are already used by existing apps. The React production build now uses `/flavordbw` for static assets and API calls via `client/.env.production` and `client/src/apiPath.js`, while local development still uses plain `/api/...` through the existing CRA proxy. The Express server now reads `PORT` and `FLAVORDB_BASE_URL` from environment variables so production can run the API on a separate PM2 port, for example `5011`, while keeping the old local defaults.

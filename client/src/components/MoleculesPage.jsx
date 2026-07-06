@@ -1,24 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { apiPath } from '../apiPath';
 import { Spinner, CatTag, RarityChip, TableWrap, ImpBar } from './Shared';
 
+const ROWS_PER_PAGE = 10;
+
 export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule }) {
-  const [ranked,  setRanked]  = useState([]);
+  const [ranked, setRanked] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
-  const [progress,setProgress]= useState(null);
+  const [error, setError] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     if (!entity) return;
-    setRanked([]); setLoading(true); setError(null); setProgress(null);
+    setRanked([]);
+    setLoading(true);
+    setError(null);
+    setProgress(null);
+    setPage(0);
 
     const ctrl = new AbortController();
-    fetch(`/api/molecules/${entity.id}`, { signal: ctrl.signal })
-      .then(r => r.json())
-      .then(data => {
+    fetch(apiPath(`/api/molecules/${entity.id}`), { signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((data) => {
         if (data.error) throw new Error(data.error);
         setRanked(data.ranked || []);
       })
-      .catch(e => { if (e.name !== 'AbortError') setError(e.message); })
+      .catch((e) => {
+        if (e.name !== 'AbortError') setError(e.message);
+      })
       .finally(() => setLoading(false));
 
     return () => ctrl.abort();
@@ -27,9 +37,49 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
   if (!entity) return null;
 
   const maxImp = ranked.length ? ranked[0].importance : 1;
-  const uniqueCount = ranked.filter(r => r.df === 1).length;
-  const rareCount   = ranked.filter(r => r.df > 1 && r.df <= 5).length;
-  const totalScore  = ranked.reduce((s, r) => s + r.importance, 0);
+  const uniqueCount = ranked.filter((r) => r.df === 1).length;
+  const rareCount = ranked.filter((r) => r.df > 1 && r.df <= 5).length;
+  const totalScore = ranked.reduce((s, r) => s + r.importance, 0);
+
+  const pageCount = Math.max(1, Math.ceil(ranked.length / ROWS_PER_PAGE));
+  const safePage = Math.min(page, pageCount - 1);
+  const startIndex = safePage * ROWS_PER_PAGE;
+  const visibleRows = ranked.slice(startIndex, startIndex + ROWS_PER_PAGE);
+
+  const paginationItems = useMemo(() => {
+    if (pageCount <= 7) {
+      return Array.from({ length: pageCount }, (_, i) => ({ type: 'page', page: i }));
+    }
+
+    const items = [{ type: 'page', page: 0 }];
+
+    if (safePage <= 2) {
+      for (let p = 1; p <= Math.min(4, pageCount - 2); p++) {
+        items.push({ type: 'page', page: p });
+      }
+      if (pageCount > 5) items.push({ type: 'ellipsis' });
+      items.push({ type: 'page', page: pageCount - 1 });
+      return items;
+    }
+
+    if (safePage >= pageCount - 3) {
+      items.push({ type: 'ellipsis' });
+      for (let p = Math.max(1, pageCount - 5); p <= pageCount - 2; p++) {
+        items.push({ type: 'page', page: p });
+      }
+      items.push({ type: 'page', page: pageCount - 1 });
+      return items;
+    }
+
+    items.push({ type: 'ellipsis' });
+    items.push({ type: 'page', page: safePage - 1 });
+    items.push({ type: 'page', page: safePage });
+    items.push({ type: 'page', page: safePage + 1 });
+    items.push({ type: 'ellipsis' });
+    items.push({ type: 'page', page: pageCount - 1 });
+
+    return items;
+  }, [pageCount, safePage]);
 
   return (
     <div>
@@ -55,7 +105,7 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
       </div>
 
       {loading && <Spinner text={`Loading flavor molecules for ${entity.name}…`} progress={progress} />}
-      {error   && <p style={{ color: '#c62828', padding: '0.5rem 0' }}>Error: {error}</p>}
+      {error && <p style={{ color: '#c62828', padding: '0.5rem 0' }}>Error: {error}</p>}
 
       {!loading && ranked.length > 0 && (
         <>
@@ -78,24 +128,21 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
             </div>
           </div>
 
-          <TableWrap
-            title={`Flavor Molecules in ${entity.name}`}
-            meta="Ranked by importance = 1/df(m)"
-          >
+          <TableWrap title={`Flavor Molecules in ${entity.name}`}>
             <table className="fdb-table">
               <thead>
                 <tr>
                   <th style={{ width: 36 }}>#</th>
                   <th>Common Name</th>
                   <th>PubChem ID</th>
-                  <th>Frequency</th>
+                  <th>Present In</th>
                   <th className="right">Relevance Score</th>
                 </tr>
               </thead>
               <tbody>
-                {ranked.map((row, i) => {
-                  const idx = i + 1;
-                  const pct = maxImp ? (row.importance / maxImp * 100) : 0;
+                {visibleRows.map((row, i) => {
+                  const idx = startIndex + i + 1;
+                  const pct = maxImp ? (row.importance / maxImp) * 100 : 0;
                   const topStyle = idx <= 3 ? { fontWeight: 700, color: '#e65100' } : {};
                   return (
                     <tr key={row.pubchem_id}>
@@ -127,11 +174,48 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
                 })}
               </tbody>
             </table>
-          </TableWrap>
 
-          <div className="snote">
-            Importance = 1/df(m) · df(m) = number of ingredients containing that molecule
-          </div>
+            {pageCount > 1 && (
+              <div className="fdb-pagination fdb-pagination-centered">
+                <button
+                  className="pag-btn"
+                  disabled={safePage <= 0}
+                  onClick={() => setPage(Math.max(0, safePage - 1))}
+                >
+                  ← Previous
+                </button>
+
+                {paginationItems.map((item, idx) => {
+                  if (item.type === 'ellipsis') {
+                    return (
+                      <span key={`ellipsis-${idx}`} className="pag-ellipsis">
+                        …
+                      </span>
+                    );
+                  }
+
+                  const isActive = item.page === safePage;
+                  return (
+                    <button
+                      key={item.page}
+                      className={`pag-btn${isActive ? ' active' : ''}`}
+                      onClick={() => setPage(item.page)}
+                    >
+                      {item.page + 1}
+                    </button>
+                  );
+                })}
+
+                <button
+                  className="pag-btn"
+                  disabled={safePage >= pageCount - 1}
+                  onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </TableWrap>
         </>
       )}
     </div>

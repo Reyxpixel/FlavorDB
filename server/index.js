@@ -3,10 +3,11 @@ const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
-const BASE_URL = 'http://192.168.1.92:9208/flavordb';
-const PORT = 5000;
+const BASE_URL = process.env.FLAVORDB_BASE_URL || 'http://192.168.1.92:9208/flavordb';
+const PORT = process.env.PORT || 5000;
 const PAGE_SIZE = 24;
 const MAX_CONCURRENT = 16;
+const AUTOCOMPLETE_LIMIT = 12;
 
 const cache = {
   allEntitiesPromise: null,
@@ -19,6 +20,10 @@ const cache = {
   foodPairingsByName: new Map(),     // name -> Promise<array>
   pairingsByKey: new Map(),          // `${entityId}|${entityName}` -> Promise<array>
   searchByName: new Map(),           // query -> Promise<array>
+  flavorMoleculeIndexPromise: null,
+  flavorMoleculeIndex: null,
+  globalMoleculesPromise: null,
+  globalSourcesPromise: null,
 };
 
 app.use(cors());
@@ -124,7 +129,7 @@ function parseMoleculeRows(payload) {
     if (!item || typeof item !== 'object') return acc;
     const pid = item.pubchem_id ?? item.pubchemId ?? item.id;
     if (pid == null) return acc;
-    // Preserve df/frequency if the compact endpoint provides it
+    // Preserve df if the compact endpoint provides it
     const df = item.df ?? item.frequency ?? item.document_frequency ?? item.documentFrequency ?? null;
     acc.push({
       pubchem_id: parseInt(pid, 10),
@@ -777,6 +782,117 @@ async function getAllEntitiesCached() {
   return cache.allEntities;
 }
 
+async function getGlobalMoleculesCached() {
+  if (!cache.globalMoleculesPromise) {
+    cache.globalMoleculesPromise = (async () => {
+      const entities = await getAllEntitiesCached();
+      const map = new Map();
+
+      let limiter = (fn) => fn();
+      if (typeof pLimit === 'function') {
+        limiter = pLimit(Math.max(4, Math.min(MAX_CONCURRENT, 8)));
+      }
+
+      await Promise.all(
+        entities.map(entity =>
+          limiter(async () => {
+            try {
+              const rows = await getEntityMoleculesCached(entity.id);
+              for (const row of rows) {
+                if (!row || row.pubchem_id == null) continue;
+                const pubchemId = parseInt(row.pubchem_id, 10);
+                if (!Number.isFinite(pubchemId)) continue;
+
+                let record = map.get(pubchemId);
+                if (!record) {
+                  record = {
+                    pubchem_id: pubchemId,
+                    name: row.name || `Molecule ${pubchemId}`,
+                    df: row.df != null ? parseInt(row.df, 10) : null,
+                    importance: scoreFromDf(row.df != null ? parseInt(row.df, 10) : 1),
+                    entityCount: 0,
+                    entityNames: [],
+                    rarity: rarityLabel(row.df != null ? parseInt(row.df, 10) : 1),
+                  };
+                  map.set(pubchemId, record);
+                }
+
+                record.entityCount += 1;
+                if (entity.name && record.entityNames.length < 4 && !record.entityNames.includes(entity.name)) {
+                  record.entityNames.push(entity.name);
+                }
+                if (!record.name && row.name) record.name = row.name;
+                if (row.name && row.name.length < record.name.length) record.name = row.name;
+                if (row.df != null) {
+                  const df = parseInt(row.df, 10);
+                  if (Number.isFinite(df) && (record.df == null || df < record.df)) {
+                    record.df = df;
+                    record.importance = scoreFromDf(df);
+                    record.rarity = rarityLabel(df);
+                  }
+                }
+              }
+            } catch {}
+          })
+        )
+      );
+
+      return [...map.values()].sort((a, b) =>
+        a.name.localeCompare(b.name) || a.pubchem_id - b.pubchem_id
+      );
+    })();
+  }
+  return cache.globalMoleculesPromise;
+}
+
+async function getGlobalSourcesCached() {
+  if (!cache.globalSourcesPromise) {
+    cache.globalSourcesPromise = (async () => {
+      const entities = await getAllEntitiesCached();
+      const map = new Map();
+
+      for (const entity of entities) {
+        const source = String(entity.source || '').trim();
+        if (!source) continue;
+
+        const key = source.toLowerCase();
+        let record = map.get(key);
+        if (!record) {
+          record = {
+            source,
+            entityCount: 0,
+            categoryCounts: new Map(),
+            examples: [],
+          };
+          map.set(key, record);
+        }
+
+        record.entityCount += 1;
+        const category = String(entity.category || '').trim();
+        if (category) {
+          record.categoryCounts.set(category, (record.categoryCounts.get(category) || 0) + 1);
+        }
+        if (entity.name && record.examples.length < 4 && !record.examples.includes(entity.name)) {
+          record.examples.push(entity.name);
+        }
+      }
+
+      return [...map.values()].map((record) => {
+        const sortedCategories = [...record.categoryCounts.entries()]
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        return {
+          source: record.source,
+          entityCount: record.entityCount,
+          category: sortedCategories[0]?.[0] || '',
+          categories: sortedCategories.slice(0, 3).map(([name, count]) => ({ name, count })),
+          examples: record.examples,
+        };
+      }).sort((a, b) => a.source.localeCompare(b.source));
+    })();
+  }
+  return cache.globalSourcesPromise;
+}
+
 async function getEntityMoleculesCached(entityId) {
   const key = String(entityId);
   if (!cache.moleculesByEntity.has(key)) {
@@ -895,6 +1011,52 @@ app.get('/api/search', async (req, res) => {
     res.json({ entities, totalPages, totalElements });
   } catch (err) {
     res.status(404).json({ error: 'Not found', detail: err.message });
+  }
+});
+
+app.get('/api/flavor-molecules/search', async (req, res) => {
+  try {
+    const { q = '', page = 0, size = 24 } = req.query;
+    const allMolecules = await getGlobalMoleculesCached();
+    const needle = String(q || '').trim().toLowerCase();
+
+    let filtered = allMolecules;
+    if (needle) {
+      filtered = allMolecules.filter((m) => String(m.name || '').toLowerCase().includes(needle));
+    }
+
+    const totalElements = filtered.length;
+    const pageNum = Math.max(0, parseInt(page, 10) || 0);
+    const pageSize = Math.max(1, parseInt(size, 10) || 24);
+    const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+    const molecules = filtered.slice(pageNum * pageSize, pageNum * pageSize + pageSize);
+
+    res.json({ molecules, totalElements, totalPages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/natural-sources/search', async (req, res) => {
+  try {
+    const { q = '', page = 0, size = 24 } = req.query;
+    const allSources = await getGlobalSourcesCached();
+    const needle = String(q || '').trim().toLowerCase();
+
+    let filtered = allSources;
+    if (needle) {
+      filtered = allSources.filter((s) => String(s.source || '').toLowerCase().includes(needle));
+    }
+
+    const totalElements = filtered.length;
+    const pageNum = Math.max(0, parseInt(page, 10) || 0);
+    const pageSize = Math.max(1, parseInt(size, 10) || 24);
+    const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+    const sources = filtered.slice(pageNum * pageSize, pageNum * pageSize + pageSize);
+
+    res.json({ sources, totalElements, totalPages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -1150,5 +1312,404 @@ app.get('/api/debug/:pubchemId', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+
+function normalizeSearchText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function splitSearchValues(value) {
+  return String(value || '')
+    .split(/[|;,/]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseFlavorMoleculeRecord(raw) {
+  const entries = collectPropertyEntries(raw);
+
+  const get = (...aliases) => findBestPropertyValue(entries, aliases);
+
+  const pubchemIdRaw = get('pubchem id', 'pubchem_id', 'pubchemid', 'pub chem id', 'cid', 'id');
+  const pubchem_id = parseInt(pubchemIdRaw, 10);
+
+  const common_name = get(
+    'common name',
+    'common_name',
+    'commonname',
+    'molecule name',
+    'compound name',
+    'name',
+    'title'
+  );
+
+  const functional_group = get(
+    'functional group',
+    'functional_group',
+    'functionalgroup',
+    'checkmol functional group',
+    'groups',
+    'group'
+  );
+
+  const flavor_profile = get(
+    'flavor profile',
+    'flavor_profile',
+    'flavorprofile',
+    'taste/odor',
+    'taste',
+    'odor'
+  );
+
+  const fema_flavor_profile = get(
+    'fema flavor profile',
+    'fema_flavor_profile',
+    'femaflavorprofile',
+    'fema profile',
+    'fema'
+  );
+
+  const molecular_weight_raw = get(
+    'molecular weight',
+    'molecular_weight',
+    'molecularweight',
+    'mw',
+    'weight'
+  );
+  const molecular_weight = molecular_weight_raw ? Number.parseFloat(String(molecular_weight_raw).replace(/[^0-9.\-]/g, '')) : null;
+
+  const hbd_raw = get(
+    'hbd count',
+    'hydrogen bond donor count',
+    'number of h donors',
+    'number of h donor',
+    'donor count'
+  );
+  const hbd = hbd_raw ? Number.parseFloat(String(hbd_raw).replace(/[^0-9.\-]/g, '')) : null;
+
+  const hba_raw = get(
+    'hba count',
+    'hydrogen bond acceptor count',
+    'number of h acceptor',
+    'number of h acceptors',
+    'acceptor count'
+  );
+  const hba = hba_raw ? Number.parseFloat(String(hba_raw).replace(/[^0-9.\-]/g, '')) : null;
+
+  const type_raw = get(
+    'type of molecule',
+    'type of molecules',
+    'molecule type',
+    'compound type',
+    'natural synthetic unknown',
+    'source type',
+    'type'
+  );
+  let molecule_type = String(type_raw || '').trim();
+  const typeNorm = normalizeSearchText(molecule_type);
+  if (typeNorm.includes('natural')) molecule_type = 'Natural';
+  else if (typeNorm.includes('synthetic')) molecule_type = 'Synthetic';
+  else if (typeNorm.includes('unknown')) molecule_type = 'Unknown';
+  else molecule_type = molecule_type || 'Unknown';
+
+  const smiles = get(
+    'canonical smiles',
+    'canonical_smiles',
+    'smiles',
+    'smile',
+    'isomeric smiles',
+    'isomeric_smiles'
+  );
+
+  const searchText = normalizeSearchText([
+    common_name,
+    functional_group,
+    flavor_profile,
+    fema_flavor_profile,
+    molecular_weight_raw,
+    molecule_type,
+    smiles,
+  ].filter(Boolean).join(' '));
+
+  return {
+    pubchem_id,
+    common_name: common_name || `Molecule ${pubchemIdRaw || '—'}`,
+    functional_group: functional_group || '—',
+    flavor_profile: flavor_profile || '—',
+    fema_flavor_profile: fema_flavor_profile || '—',
+    molecular_weight,
+    hbd,
+    hba,
+    molecule_type,
+    smiles: smiles || '',
+    searchText,
+    raw,
+  };
+}
+
+async function getFlavorMoleculeIndexCached() {
+  if (cache.flavorMoleculeIndex) return cache.flavorMoleculeIndex;
+  if (cache.flavorMoleculeIndexPromise) return cache.flavorMoleculeIndexPromise;
+
+  cache.flavorMoleculeIndexPromise = (async () => {
+    const pageSize = 500;
+    const rows = [];
+    let page = 0;
+    let totalPages = 1;
+
+    while (page < totalPages) {
+      const payload = await fdbGet('/more_properties/by-pubchemId-range', {
+        min: 0,
+        max: 999999999,
+        page,
+        size: pageSize,
+      });
+
+      const list = bestList(payload);
+      rows.push(...list);
+
+      const nextTotalPages = parseInt(payload?.totalPages ?? totalPages, 10);
+      if (Number.isFinite(nextTotalPages) && nextTotalPages > 0) {
+        totalPages = nextTotalPages;
+      } else if (list.length < pageSize) {
+        totalPages = page + 1;
+      }
+
+      page += 1;
+      if (!Number.isFinite(totalPages) || totalPages <= 0) break;
+      if (page > 200) break;
+    }
+
+    const seen = new Map();
+    for (const raw of rows) {
+      const record = parseFlavorMoleculeRecord(raw);
+      if (!Number.isFinite(record.pubchem_id)) continue;
+      if (!seen.has(record.pubchem_id)) seen.set(record.pubchem_id, record);
+    }
+
+    const index = [...seen.values()].sort((a, b) => {
+      const an = String(a.common_name || '');
+      const bn = String(b.common_name || '');
+      return an.localeCompare(bn);
+    });
+
+    cache.flavorMoleculeIndex = index;
+    return index;
+  })().catch((err) => {
+    cache.flavorMoleculeIndexPromise = null;
+    throw err;
+  });
+
+  return cache.flavorMoleculeIndexPromise;
+}
+
+function makeAutocompleteSuggestions(records, field, q) {
+  const query = normalizeSearchText(q);
+  if (query.length < 2) return [];
+
+  const seen = new Set();
+  const scored = [];
+
+  const appendValue = (value, meta = '') => {
+    const v = String(value || '').trim();
+    if (!v) return;
+    const key = v.toLowerCase();
+    if (seen.has(key)) return;
+
+    const vn = normalizeSearchText(v);
+    const startsWhole = vn.startsWith(query);
+    const startsToken = splitSearchValues(vn).some((part) => part.startsWith(query));
+    const contains = vn.includes(query);
+    if (!startsWhole && !startsToken && !contains) return;
+
+    seen.add(key);
+    scored.push({
+      value: v,
+      meta,
+      score: startsWhole ? 0 : startsToken ? 1 : 2,
+      sortKey: vn,
+    });
+  };
+
+  for (const record of records) {
+    if (field === 'commonName') {
+      appendValue(record.common_name, `PubChem ${record.pubchem_id}`);
+      continue;
+    }
+
+    const raw = record[field];
+    const parts = splitSearchValues(raw);
+    if (parts.length > 0) {
+      for (const part of parts) {
+        appendValue(part, record.common_name);
+      }
+    } else {
+      appendValue(raw, record.common_name);
+    }
+  }
+
+  scored.sort((a, b) => a.score - b.score || a.sortKey.localeCompare(b.sortKey));
+  return scored.slice(0, AUTOCOMPLETE_LIMIT).map(({ value, meta }) => ({ value, meta }));
+}
+
+function matchesStringField(value, query) {
+  const q = normalizeSearchText(query);
+  if (!q) return true;
+  const haystack = normalizeSearchText(value);
+  return haystack.includes(q);
+}
+
+function matchesType(value, query) {
+  const q = normalizeSearchText(query);
+  if (!q || q === 'all') return true;
+  const haystack = normalizeSearchText(value);
+  if (q === 'natural') return haystack.includes('natural');
+  if (q === 'synthetic') return haystack.includes('synthetic');
+  if (q === 'unknown') return haystack.includes('unknown') || !haystack;
+  return haystack.includes(q);
+}
+
+function matchesStructure(record, query) {
+  const q = normalizeSearchText(query);
+  if (!q) return true;
+  return normalizeSearchText(record.smiles).includes(q) || normalizeSearchText(record.searchText).includes(q);
+}
+
+function parseSearchParams(query) {
+  return {
+    commonName: query.commonName || '',
+    functionalGroup: query.functionalGroup || '',
+    flavorProfile: query.flavorProfile || '',
+    femaFlavorProfile: query.femaFlavorProfile || '',
+    mwFrom: query.mwFrom || 'Default',
+    mwTo: query.mwTo || 'Disabled',
+    hbd: query.hbd || 'Default',
+    hba: query.hba || 'Default',
+    moleculeType: query.moleculeType || 'All',
+    structure: query.structure || '',
+    pageIndex: Number.parseInt(query.page || query.pageIndex || '0', 10) || 0,
+    size: Number.parseInt(query.size || '24', 10) || 24,
+  };
+}
+
+function parseSearchBucket(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw === 'Default' || raw === 'Disabled') return null;
+  if (/^\d+\+$/.test(raw)) {
+    const min = Number.parseFloat(raw.replace('+', ''));
+    return { min, max: Infinity };
+  }
+  if (/^\d+\s*-\s*\d+$/.test(raw)) {
+    const [min, max] = raw.split('-').map((n) => Number.parseFloat(n.trim()));
+    return { min, max };
+  }
+  const num = Number.parseFloat(raw);
+  if (Number.isFinite(num)) return { min: num, max: num };
+  return null;
+}
+
+function buildWeightBounds(from, to) {
+  const min = parseSearchBucket(from);
+  const max = parseSearchBucket(to);
+  return {
+    min: min ? min.min : null,
+    max: max ? max.max : null,
+  };
+}
+
+function matchesWeight(value, bounds) {
+  if (bounds.min == null && bounds.max == null) return true;
+  const num = Number.parseFloat(value);
+  if (!Number.isFinite(num)) return false;
+  if (bounds.min != null && num < bounds.min) return false;
+  if (bounds.max != null && num > bounds.max) return false;
+  return true;
+}
+
+function matchesNumericBucket(value, bucketQuery) {
+  const bucket = parseSearchBucket(bucketQuery);
+  if (!bucket) return true;
+  const num = Number.parseFloat(value);
+  if (!Number.isFinite(num)) return false;
+  return num >= bucket.min && num <= bucket.max;
+}
+
+function filterFlavorMolecules(records, filters) {
+  const weightBounds = buildWeightBounds(filters.mwFrom, filters.mwTo);
+
+  return records.filter((record) => (
+    matchesStringField(record.common_name, filters.commonName) &&
+    matchesStringField(record.functional_group, filters.functionalGroup) &&
+    matchesStringField(record.flavor_profile, filters.flavorProfile) &&
+    matchesStringField(record.fema_flavor_profile, filters.femaFlavorProfile) &&
+    matchesWeight(record.molecular_weight, weightBounds) &&
+    matchesNumericBucket(record.hbd, filters.hbd) &&
+    matchesNumericBucket(record.hba, filters.hba) &&
+    matchesType(record.molecule_type, filters.moleculeType) &&
+    matchesStructure(record, filters.structure)
+  ));
+}
+
+
+
+
+// Flavor molecule autocomplete
+app.get('/api/flavor-molecules/autocomplete', async (req, res) => {
+  try {
+    const { field = 'commonName', q = '', limit = AUTOCOMPLETE_LIMIT } = req.query;
+    const index = await getFlavorMoleculeIndexCached();
+
+    const validFields = new Set(['commonName', 'functionalGroup', 'flavorProfile', 'femaFlavorProfile']);
+    const activeField = validFields.has(field) ? field : 'commonName';
+
+    const suggestions = makeAutocompleteSuggestions(index, activeField, q)
+      .slice(0, Math.max(1, Math.min(20, parseInt(limit, 10) || AUTOCOMPLETE_LIMIT)));
+
+    res.json({ suggestions });
+  } catch (err) {
+    res.status(500).json({ error: err.message, suggestions: [] });
+  }
+});
+
+// Flavor molecule search
+app.get('/api/flavor-molecules/search', async (req, res) => {
+  try {
+    const filters = parseSearchParams(req.query);
+    const index = await getFlavorMoleculeIndexCached();
+
+    const filtered = filterFlavorMolecules(index, filters);
+
+    const totalElements = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalElements / filters.size));
+    const safePage = Math.min(Math.max(filters.pageIndex, 0), totalPages - 1);
+    const start = safePage * filters.size;
+    const pageRows = filtered.slice(start, start + filters.size).map((record) => ({
+      pubchem_id: record.pubchem_id,
+      common_name: record.common_name,
+      fema_flavor_profile: record.fema_flavor_profile,
+      flavor_profile: record.flavor_profile,
+      functional_group: record.functional_group,
+      molecular_weight: record.molecular_weight,
+      molecule_type: record.molecule_type,
+      smiles: record.smiles,
+    }));
+
+    res.json({
+      results: pageRows,
+      totalElements,
+      totalPages,
+      pageIndex: safePage,
+      size: filters.size,
+      query: filters,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message, results: [], totalElements: 0, totalPages: 1 });
+  }
+});
+
 
 app.listen(PORT, () => console.log(`FlavorDB API server running on http://localhost:${PORT}`));

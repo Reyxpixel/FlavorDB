@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { apiPath } from '../apiPath';
 import { CatTag, RarityChip, Spinner, TableWrap } from './Shared';
 
 const JSMOL_SCRIPT_URL = 'https://chemapps.stolaf.edu/jmol/jsmol/js/JSmol.min.js';
@@ -186,7 +187,7 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
     setPropertiesError(null);
     setSections({ physicochemical: [], admet: [], structure: [] });
 
-    fetch(`/api/molecule-overview/${molecule.pubchem_id}`, { signal: ctrl.signal })
+    fetch(apiPath(`/api/molecule-overview/${molecule.pubchem_id}`), { signal: ctrl.signal })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.detail || data?.error || 'Failed to load molecule overview');
@@ -227,6 +228,8 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
   if (!entity || !molecule) return null;
 
   const totalContaining = containingEntities.length || molecule.df || 0;
+  const containedLabel = totalContaining === 1 ? 'Ingredient' : 'Ingredients';
+  const containedText = `${totalContaining} ${containedLabel}`;
   const rarity =
     molecule.rarity?.label ||
     (molecule.df === 1 ? 'unique' : molecule.df <= 5 ? 'rare' : molecule.df <= 50 ? 'common' : 'ubiquitous');
@@ -264,7 +267,7 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
         <div className="meta">
           Ingredient: <strong>{entity.name}</strong>
           &nbsp;·&nbsp; PubChem ID: {molecule.pubchem_id}
-          &nbsp;·&nbsp; Frequency: {molecule.df}
+          &nbsp;·&nbsp; Present In: {molecule.df}
           &nbsp;·&nbsp; Importance: {Number(molecule.importance || 0).toFixed(6)}
         </div>
       </div>
@@ -275,7 +278,7 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
           <div className="molecule-detail-list">
             <PropertyRow label="Common name" value={molecule.name} />
             <PropertyRow label="PubChem ID" value={molecule.pubchem_id} />
-            <PropertyRow label="Contained in" value={formatMaybe(totalContaining)} />
+            <PropertyRow label="Contained in" value={containedText} />
             <PropertyRow
               label="Rarity"
               value={<RarityChip rarity={molecule.rarity || { label: rarity, cls: `rarity-${rarity}` }} />}

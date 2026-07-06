@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { apiPath } from '../apiPath';
 import { Spinner, CatTag, RarityChip, PairBar, Expander } from './Shared';
 import { catColor } from '../categories';
 
@@ -23,7 +24,7 @@ export default function PairingsPage({ entity, onBackToMolecules }) {
     setStatus('Connecting…');
     setProgress(null);
 
-    const url = `/api/pairings/${entity.id}?entityName=${encodeURIComponent(entity.name)}`;
+    const url = apiPath(`/api/pairings/${entity.id}?entityName=${encodeURIComponent(entity.name)}`);
     const es = new EventSource(url);
     esRef.current = es;
 
@@ -136,7 +137,7 @@ export default function PairingsPage({ entity, onBackToMolecules }) {
         <h2>Flavor Pairing Analysis — {entity.name}</h2>
         <div className="meta">
           Category: <CatTag category={entity.category} />
-          &nbsp;·&nbsp; Pair(A,B) = Σ 1/df(m) over shared molecules
+          &nbsp;·&nbsp; Pairing score over shared molecules
           &nbsp;·&nbsp; scored against all ~936 FlavorDB ingredients
         </div>
       </div>
@@ -274,7 +275,7 @@ export default function PairingsPage({ entity, onBackToMolecules }) {
             <button
               className="pag-btn"
               disabled={safePage <= 0}
-              onClick={() => setPage(0)}
+              onClick={() => setPage(Math.max(0, safePage - 1))}
             >
               ← Previous
             </button>
@@ -303,7 +304,7 @@ export default function PairingsPage({ entity, onBackToMolecules }) {
             <button
               className="pag-btn"
               disabled={safePage >= pageCount - 1}
-              onClick={() => setPage(pageCount - 1)}
+              onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
             >
               Next →
             </button>

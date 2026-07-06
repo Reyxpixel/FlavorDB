@@ -1,6 +1,10 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
   font-family: 'Open Sans', Arial, sans-serif;
   background: #f5f5f5;
   color: #333;
@@ -10,18 +14,100 @@ html, body {
 a { color: #1565c0; text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* ── Hero ── */
-.fdb-hero {
+/* ── Site header ── */
+.fdb-site-header {
   background: #f0f0f0;
   border-bottom: 1px solid #ddd;
-  text-align: center;
-  padding: 2.5rem 1rem 2rem;
 }
-.fdb-hero h1 { font-size: 2.2rem; font-weight: 700; color: #222; margin-bottom: 0.4rem; }
-.fdb-hero p  { font-size: 1rem; color: #555; }
+.fdb-site-header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0.7rem 1.5rem 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.fdb-site-logo {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  color: #1565c0;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  padding: 0;
+  flex-shrink: 0;
+}
+.fdb-site-logo:hover {
+  background: #f7fbff;
+  border-color: #b9d3ef;
+}
+.fdb-site-branding {
+  min-width: 180px;
+  flex: 1 1 220px;
+}
+.fdb-site-branding h1 {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 0.3rem;
+  line-height: 1;
+}
+.fdb-site-branding p {
+  font-size: 1rem;
+  color: #555;
+}
+.fdb-site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.8rem;
+  margin-left: auto;
+  align-items: center;
+}
+.fdb-site-nav-link {
+  color: #1565c0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+.fdb-site-nav-link:hover {
+  text-decoration: underline;
+}
 
-/* ── Content wrapper ── */
-.fdb-content { max-width: 1100px; margin: 1.5rem auto; padding: 0 1.5rem; }
+@media (max-width: 720px) {
+  .fdb-site-header-inner {
+    padding-bottom: 0.9rem;
+  }
+
+  .fdb-site-nav {
+    margin-left: 0;
+  }
+}
+
+/* ── App shell / content wrapper ── */
+.fdb-app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.fdb-content {
+  max-width: 1100px;
+  margin: 1.5rem auto;
+  padding: 0 1.5rem;
+  flex: 1 0 auto;
+  width: 100%;
+}
 
 /* ── Search box ── */
 .fdb-search-wrap {
@@ -196,55 +282,38 @@ button.ent-link { background: none; border: none; padding: 0; font: inherit; out
 
 .snote { font-size: 0.78rem; color: #888; }
 
+
+/* ── Site footer ── */
+.fdb-site-footer {
+  background: #f0f0f0;
+  border-top: 1px solid #ddd;
+  margin-top: auto;
+}
+.fdb-site-footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 1.2rem;
+  text-align: center;
+  color: #555;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.fdb-site-footer-inner a {
+  color: #1565c0;
+}
+.fdb-site-footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 /* Interleaved pair table rows */
 .pair-row-wrap { border-left: 1px solid #ddd; border-right: 1px solid #ddd; border-bottom: 1px solid #eee; }
 .pair-row-wrap:first-child { border-top: 1px solid #ddd; }
 
 
-/* ── Header logo / home button ── */
-.fdb-hero {
-  position: relative;
-}
-.fdb-logo {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 999px;
-  border: 1px solid #d0d0d0;
-  background: #fff;
-  color: #1565c0;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  padding: 0;
-}
-.fdb-logo:hover {
-  background: #f7fbff;
-  border-color: #b9d3ef;
-}
-.fdb-logo-mark {
-  font-size: 0.78rem;
-  line-height: 1;
-}
-
-@media (max-width: 640px) {
-  .fdb-logo {
-    width: 2.6rem;
-    height: 2.6rem;
-    top: 0.8rem;
-    left: 0.8rem;
-  }
-  .fdb-logo-mark {
-    font-size: 0.68rem;
-  }
-}
 
 /* ── Autocomplete dropdown ── */
 .fdb-search-wrap {
@@ -334,36 +403,6 @@ button.ent-link { background: none; border: none; padding: 0; font: inherit; out
 }
 
 
-/* ── Home logo / top-left button ── */
-.fdb-hero {
-  position: relative;
-}
-.fdb-home-btn {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  border: 1px solid #d8d8d8;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-  z-index: 2;
-}
-.fdb-home-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
-  background: #fafafa;
-}
-.fdb-home-btn-icon {
-  font-size: 1.65rem;
-  line-height: 1;
-}
 
 /* ── Autocomplete dropdown ── */
 .fdb-search-shell {
@@ -653,4 +692,369 @@ button.ent-link { background: none; border: none; padding: 0; font: inherit; out
 .molecule-empty {
   padding: 0.9rem 1rem;
   color: #777;
+}
+
+
+
+/* ── Search tabs / layout updates ── */
+.fdb-tabs-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.fdb-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.fdb-tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid #ddd;
+  padding: 0.9rem 1.1rem;
+  font: inherit;
+  font-weight: 600;
+  color: #1565c0;
+  cursor: pointer;
+}
+
+.fdb-tab:last-child {
+  border-right: 0;
+}
+
+.fdb-tab:hover {
+  background: #f3f7fb;
+}
+
+.fdb-tab.is-active {
+  background: #fff;
+  color: #222;
+  box-shadow: inset 0 -3px 0 #1565c0;
+}
+
+.fdb-tab-panel {
+  padding: 1rem;
+}
+
+.fdb-subnote {
+  margin-top: 0.4rem;
+  color: #5f6b7a;
+  font-size: 0.9rem;
+}
+
+.molecule-advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+  margin-top: 1rem;
+}
+
+.molecule-advanced-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.molecule-advanced-grid label span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.molecule-advanced-grid input,
+.molecule-advanced-grid select {
+  width: 100%;
+  padding: 0.48rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.molecule-advanced-wide {
+  grid-column: 1 / -1;
+}
+
+.fdb-search-row--end {
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.fdb-molecule-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+
+.fdb-molecule-editor,
+.fdb-molecule-results {
+  min-width: 0;
+}
+
+.fdb-panel-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1565c0;
+  margin-bottom: 0.6rem;
+}
+
+.fdb-panel-caption {
+  margin-top: 0.45rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.fdb-jsme-frame {
+  width: 100%;
+  height: 560px;
+  border: 1px solid #d8d8d8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+@media (max-width: 960px) {
+  .fdb-molecule-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .molecule-advanced-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ── Flavor molecule explorer / tabs ── */
+.fdb-flavor-explorer {
+  width: 100%;
+}
+
+.fdb-search-tabs {
+  display: flex;
+  gap: 0.35rem;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0;
+}
+
+.fdb-search-tab {
+  border: 1px solid #ddd;
+  border-bottom: none;
+  background: #fff;
+  color: #1565c0;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.fdb-search-tab.active {
+  color: #333;
+  font-weight: 600;
+  margin-bottom: -1px;
+  background: #fff;
+}
+
+.fdb-search-tab:disabled {
+  opacity: 1;
+}
+
+.fdb-search-panel {
+  width: 100%;
+}
+
+.fdb-search-title {
+  background: #d9edf7;
+  color: #1d5f84;
+  font-weight: 700;
+  padding: 0.85rem 1rem 0.25rem;
+  border: 1px solid #b3d7ea;
+  border-bottom: none;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  font-size: 1rem;
+}
+
+.fdb-search-subtitle {
+  background: #d9edf7;
+  color: #1d5f84;
+  padding: 0 1rem 0.9rem;
+  border: 1px solid #b3d7ea;
+  border-top: none;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.fdb-search-grid {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .fdb-search-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fdb-search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fdb-search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fdb-mini-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #444;
+  margin-bottom: 0.25rem;
+}
+
+.fdb-range-group,
+.fdb-structure-panel,
+.fdb-search-actions {
+  margin-top: 0.15rem;
+}
+
+.fdb-range-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.fdb-range-row-compact {
+  grid-template-columns: 1fr 1fr;
+}
+
+.fdb-search-form select,
+.fdb-search-form textarea,
+.fdb-search-form input {
+  width: 100%;
+  border: 1px solid #cfcfcf;
+  border-radius: 3px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  background: #fff;
+}
+
+.fdb-search-form select:focus,
+.fdb-search-form textarea:focus,
+.fdb-search-form input:focus {
+  outline: none;
+  border-color: #1565c0;
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.12);
+}
+
+.fdb-search-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.fdb-structure-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fdb-jsme-box {
+  background: #f8f8f8;
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  overflow: hidden;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+.fdb-jsme-toolbar {
+  height: 48px;
+  background: #bfbfbf;
+  border-bottom: 1px solid #a7a7a7;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.55rem;
+  font-size: 0.72rem;
+  color: #333;
+}
+
+.fdb-jsme-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffeb3b;
+  border: 1px solid #999;
+  flex-shrink: 0;
+}
+
+.fdb-jsme-toolbar-title {
+  margin-left: auto;
+  font-weight: 700;
+}
+
+.fdb-jsme-react {
+  flex: 1;
+  width: 100%;
+  min-height: 330px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.fdb-jsme-react > div {
+  width: 100%;
+  height: 100%;
+}
+
+.fdb-jsme-status {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8rem;
+  color: #666;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f8f8;
+}
+
+.fdb-jsme-caption {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8rem;
+  color: #666;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f8f8;
+}
+
+.fdb-results-page {
+  width: 100%;
+}
+
+.fdb-molecule-results-table td,
+.fdb-molecule-results-table th {
+  vertical-align: top;
+}
+
+.fdb-not-found {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
