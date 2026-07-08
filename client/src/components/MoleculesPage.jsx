@@ -123,7 +123,7 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
                 Rare
                 <InfoTip
                   label="What does Rare mean?"
-                  text="A molecule is counted as Rare when it appears in 5 or fewer entities/ingredients, i.e. df(m) ≤ 5 — where df(m), the document frequency, is the number of entities/ingredients that contain molecule m."
+                  text="A molecule is counted as Rare when it appears in 5 or fewer entities/ingredients."
                 />
               </div>
             </div>
