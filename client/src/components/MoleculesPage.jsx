@@ -151,7 +151,9 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                       Relevance Score
                       <span className="fdb-infotip">
-                        <span className="fdb-infotip-mark">?</span>
+                        <svg className="fdb-infotip-mark" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                        </svg>
                         <span className="fdb-infotip-bubble fdb-infotip-bubble-right" style={{ fontWeight: 'normal', textTransform: 'none', textAlign: 'left' }}>
                           The Relevance Score of a molecule captures its uniqueness. It is calculated as the inverse of its document frequency: 1/df(m), where df(m) is the total number of ingredients that contain this molecule.
                         </span>
@@ -182,12 +184,13 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
                         )}
                         <RarityChip rarity={row.rarity} />
                       </td>
-                      <td className="muted mono">
+                      <td>
                         <a 
                           href={`https://pubchem.ncbi.nlm.nih.gov/compound/${row.pubchem_id}`} 
                           target="_blank" 
                           rel="noreferrer"
-                          style={{ color: '#1565c0', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          className="ent-link"
+                          style={{ fontWeight: 'normal', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                         >
                           {row.pubchem_id}
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -197,7 +200,20 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
                           </svg>
                         </a>
                       </td>
-                      <td className="muted">{row.df} ingredient{row.df !== 1 ? 's' : ''}</td>
+                      <td className="muted">
+                        {onOpenMolecule ? (
+                          <button
+                            type="button"
+                            className="ent-link"
+                            style={{ fontWeight: 'normal', textAlign: 'left' }}
+                            onClick={() => onOpenMolecule(row, { scrollTo: 'entities' })}
+                          >
+                            {row.df} ingredient{row.df !== 1 ? 's' : ''}
+                          </button>
+                        ) : (
+                          `${row.df} ingredient${row.df !== 1 ? 's' : ''}`
+                        )}
+                      </td>
                       <td className="right" style={{ whiteSpace: 'nowrap' }}>
                         <ImpBar pct={pct} />
                         <span className="mono" style={{ color: '#1565c0', fontWeight: 600 }}>

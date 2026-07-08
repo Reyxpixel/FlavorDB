@@ -241,6 +241,12 @@ function loadJsmeScript() {
       return;
     }
 
+    const previousOnLoad = window.jsmeOnLoad;
+    window.jsmeOnLoad = () => {
+      if (previousOnLoad) previousOnLoad();
+      resolve();
+    };
+
     if (!document.getElementById('jsme-script-loader')) {
       const script = document.createElement('script');
       script.id = 'jsme-script-loader';
@@ -277,6 +283,11 @@ function JsmeEditor({ onSmilesChange }) {
   const [ready, setReady] = useState(false);
   const [smiles, setSmiles] = useState('');
   const [error, setError] = useState('');
+  const onChangeRef = useRef(onSmilesChange);
+
+  useEffect(() => {
+    onChangeRef.current = onSmilesChange;
+  }, [onSmilesChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -296,29 +307,34 @@ function JsmeEditor({ onSmilesChange }) {
   }, []);
 
   useEffect(() => {
-    if (!ready || editorRef.current || !window.JSApplet?.JSME) return undefined;
+    if (!ready || !window.JSApplet?.JSME) return undefined;
+
+    const el = document.getElementById(containerId.current);
+    if (!el || el.childNodes.length > 0) return undefined;
 
     try {
-      editorRef.current = new window.JSApplet.JSME(containerId.current, '100%', '100%', {
+      const applet = new window.JSApplet.JSME(containerId.current, '100%', '420px', {
         options: 'oldlook,query,marker,noatommovebutton,fgmenu',
       });
-      editorRef.current.setCallBack('AfterStructureModified', () => {
+      applet.setCallBack('AfterStructureModified', () => {
         try {
-          const value = editorRef.current?.smiles?.() || '';
+          const value = applet?.smiles?.() || '';
           setSmiles(value);
-          onSmilesChange?.(value);
+          if (onChangeRef.current) onChangeRef.current(value);
         } catch {
           // ignore
         }
       });
+      editorRef.current = applet;
     } catch (err) {
       setError(err?.message || 'Failed to initialize JSME');
     }
 
     return () => {
       editorRef.current = null;
+      if (el) el.innerHTML = '';
     };
-  }, [onSmilesChange, ready]);
+  }, [ready]);
 
   return (
     <div className="fdb-jsme-card">

@@ -165,7 +165,8 @@ function JSmolViewer({ pubchemId, active }) {
   );
 }
 
-export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEntity }) {
+export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack, onOpenEntity }) {
+  const entitiesRef = useRef(null);
   const [activeTab, setActiveTab] = useState('image');
   const [containingEntities, setContainingEntities] = useState([]);
   const [loadingEntities, setLoadingEntities] = useState(true);
@@ -173,6 +174,16 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
   const [sections, setSections] = useState({ physicochemical: [], admet: [], structure: [] });
   const [propertiesError, setPropertiesError] = useState(null);
   const [loadingProperties, setLoadingProperties] = useState(true);
+
+  useEffect(() => {
+    if (scrollTo === 'entities' && entitiesRef.current && !loadingEntities) {
+      setTimeout(() => {
+        if (entitiesRef.current) {
+          entitiesRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [scrollTo, loadingEntities]);
 
   useEffect(() => {
     if (!molecule?.pubchem_id) return;
@@ -259,7 +270,9 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
       </div>
 
       <div className="fdb-nav-row">
-        <button className="btn btn-back" onClick={onBack}>← Back to molecules</button>
+        <button className="btn btn-back" onClick={onBack}>
+          &larr; Back to {entity && entity.id === 0 ? 'Search' : (entity ? entity.name : 'molecules')}
+        </button>
       </div>
 
       <div className="fdb-page-header">
@@ -288,9 +301,11 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Flavor Importance
                   <span className="fdb-infotip">
-                    <span className="fdb-infotip-mark">?</span>
+                    <svg className="fdb-infotip-mark" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" />
+                    </svg>
                     <span className="fdb-infotip-bubble" style={{ fontWeight: 'normal', textTransform: 'none' }}>
-                      The Relevance Score (or Flavor Importance) of a molecule captures its uniqueness. It is calculated as the inverse of its document frequency: 1/df(m), where df(m) is the total number of ingredients that contain this molecule.
+                      The Flavor Importance of a molecule captures its uniqueness. It is calculated as the inverse of its document frequency: 1/df(m), where df(m) is the total number of ingredients that contain this molecule.
                     </span>
                   </span>
                 </div>
@@ -357,38 +372,40 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
         </p>
       )}
 
-      <TableWrap
-        title={`Entities that contain ${molecule.name}`}
-        meta={loadingEntities ? 'Loading containing ingredients…' : `${containingEntities.length} ingredients`}
-      >
-        {loadingEntities && <div style={{ padding: '0 1rem' }}><Spinner text="Loading containing ingredients…" /></div>}
-        {entityError && (
-          <p style={{ color: '#c62828', padding: '0.8rem 1rem' }}>
-            Error: {entityError}
-          </p>
-        )}
-        {!loadingEntities && !entityError && (
-          <div className="molecule-entity-list">
-            {containingEntities.length > 0 ? containingEntities.map((ent) => (
-              <button
-                key={ent.id}
-                type="button"
-                className="molecule-entity-row"
-                onClick={() => onOpenEntity(ent)}
-              >
-                <div className="molecule-entity-name">{ent.name}</div>
-                <div className="molecule-entity-sub">
-                  {ent.category || '—'}{ent.source ? ` · ${ent.source}` : ''}
+      <div ref={entitiesRef}>
+        <TableWrap
+          title={`Entities that contain ${molecule.name}`}
+          meta={loadingEntities ? 'Loading containing ingredients.' : `${containingEntities.length} ingredients`}
+        >
+          {loadingEntities && <div style={{ padding: '0 1rem' }}><Spinner text="Loading containing ingredients…" /></div>}
+          {entityError && (
+            <p style={{ color: '#c62828', padding: '0.8rem 1rem' }}>
+              Error: {entityError}
+            </p>
+          )}
+          {!loadingEntities && !entityError && (
+            <div className="molecule-entity-list">
+              {containingEntities.length > 0 ? containingEntities.map((ent) => (
+                <button
+                  key={ent.id}
+                  type="button"
+                  className="molecule-entity-row"
+                  onClick={() => onOpenEntity(ent)}
+                >
+                  <div className="molecule-entity-name">{ent.name}</div>
+                  <div className="molecule-entity-sub">
+                    {ent.category || '—'}{ent.source ? ` · ${ent.source}` : ''}
+                  </div>
+                </button>
+              )) : (
+                <div className="molecule-empty">
+                  No containing ingredients returned for this molecule.
                 </div>
-              </button>
-            )) : (
-              <div className="molecule-empty">
-                No containing ingredients returned for this molecule.
-              </div>
-            )}
-          </div>
-        )}
-      </TableWrap>
+              )}
+            </div>
+          )}
+        </TableWrap>
+      </div>
     </div>
   );
 }

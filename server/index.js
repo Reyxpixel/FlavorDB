@@ -622,6 +622,20 @@ function buildSectionsFromMerged(pubProps, flat) {
     return '—';
   };
 
+  const formatValue = (val) => {
+    if (!val || val === '—') return val;
+    return val.replace(/-?\d+\.\d+/g, (match) => {
+      const num = parseFloat(match);
+      if (!isNaN(num)) {
+        const str = num.toString();
+        if (str.includes('.') && str.split('.')[1].length > 5) {
+          return Number(num.toFixed(5)).toString();
+        }
+      }
+      return match;
+    });
+  };
+
   const physicochemical = [
     { label: 'Molecular weight',                   value: pick(fromFlat('Molecular weight', 'molecular weight', 'molecularweight'), fromPubChem('MolecularWeight')) },
     { label: 'HBD count',                          value: pick(fromFlat('HBD count', 'hbd count', 'hydrogen bond donor count', 'donor count'), fromPubChem('HBondDonorCount')) },
@@ -644,7 +658,7 @@ function buildSectionsFromMerged(pubProps, flat) {
     { label: 'Covalently Bounded Unit Count',      value: pick(fromFlat('Covalently Bounded Unit Count', 'covalently bounded unit count'), fromPubChem('CovalentUnitCount')) },
     { label: 'InChI',                              value: pick(fromFlat('InChI', 'inchi'), fromPubChem('InChI')) },
     { label: 'Volume 3D',                          value: pick(fromFlat('Volume 3D', 'volume 3d', 'vloume 3d', '3d volume'), fromPubChem('Volume3D')) },
-  ].map(r => ({ ...r, value: r.value || '—' }));
+  ].map(r => ({ ...r, value: formatValue(r.value || '—') }));
 
   const admet = [
     { label: 'ADMET Solubility',                             value: pick(fromFlat('ADMET Solubility', 'admet_solubility', 'admetsolubility', 'solubility')) },
@@ -665,7 +679,7 @@ function buildSectionsFromMerged(pubProps, flat) {
     { label: 'ADMET unknown AlogP98',                        value: pick(fromFlat('ADMET unknown AlogP98', 'admet_unknown_alogp98', 'unknown_alogp98')) },
     { label: 'ADMET AlogP98',                                value: pick(fromFlat('ADMET AlogP98', 'admet_alogp98', 'alogp98')) },
     { label: 'ADMET PSA 2D',                                 value: pick(fromFlat('ADMET PSA 2D', 'admet_psa_2d', 'psa_2d')) },
-  ].map(r => ({ ...r, value: r.value || '—' }));
+  ].map(r => ({ ...r, value: formatValue(r.value || '—') }));
 
   const structure = [
     { label: 'Number of atoms',                        value: pick(fromFlat('Number of atoms', 'number of atoms', 'number_of_atoms'), fromPubChem('HeavyAtomCount')) },
@@ -689,7 +703,7 @@ function buildSectionsFromMerged(pubProps, flat) {
     { label: 'Molecular SASA (Solvent accessible SA)', value: pick(fromFlat('Molecular SASA (Solvent accessible SA)', 'molecular sasa', 'solvent accessible sa', 'sasa')) },
     { label: 'Radius of gyration',                     value: pick(fromFlat('Radius of gyration', 'radius of gyration')) },
     { label: 'Molecular 3D SASA',                      value: pick(fromFlat('Molecular 3D SASA', 'molecular 3d sasa')) },
-  ].map(r => ({ ...r, value: r.value || '—' }));
+  ].map(r => ({ ...r, value: formatValue(r.value || '—') }));
 
   return { physicochemical, admet, structure };
 }

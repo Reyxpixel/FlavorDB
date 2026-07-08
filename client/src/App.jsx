@@ -59,6 +59,7 @@ function readStateFromUrl() {
       const molname = params.get('molname');
       const df = params.get('df');
       const importance = params.get('importance');
+      const scrollTo = params.get('scrollTo');
       if (pubchem && molname) {
         return {
           view: 'moleculeDetail',
@@ -71,14 +72,15 @@ function readStateFromUrl() {
             rarity: null,
           },
           molQuery: null,
+          scrollTo,
         };
       }
     }
 
-    return { view: 'molecules', entity, selectedMolecule: null, molQuery: null };
+    return { view: 'molecules', entity, selectedMolecule: null, molQuery: null, scrollTo: null };
   }
 
-  return { view: 'browse', entity: null, selectedMolecule: null, molQuery: null };
+  return { view: 'browse', entity: null, selectedMolecule: null, molQuery: null, scrollTo: null };
 }
 
 export default function App() {
@@ -90,7 +92,7 @@ export default function App() {
     return s.molQuery ? { ...EMPTY_MOL_FORM, ...s.molQuery } : EMPTY_MOL_FORM;
   });
 
-  const { view, entity, selectedMolecule, molQuery } = state;
+  const { view, entity, selectedMolecule, molQuery, scrollTo } = state;
 
   const applyUrl = useCallback(() => {
     const next = readStateFromUrl();
@@ -144,7 +146,7 @@ export default function App() {
     navigate(`?${params.toString()}`);
   }
 
-  function openMoleculeDetail(molecule, parentEntity = entity) {
+  function openMoleculeDetail(molecule, parentEntity = entity, opts = {}) {
     if (!parentEntity || !molecule) return;
     const params = new URLSearchParams({
       action: 'molecule',
@@ -156,6 +158,9 @@ export default function App() {
       df: String(molecule.df ?? 1),
       importance: String(molecule.importance ?? 1),
     });
+    if (opts.scrollTo) {
+      params.set('scrollTo', opts.scrollTo);
+    }
     navigate(`?${params.toString()}`);
   }
 
@@ -256,7 +261,7 @@ export default function App() {
             entity={entity}
             onBack={goBack}
             onPairIt={() => openPairings(entity)}
-            onOpenMolecule={(mol) => openMoleculeDetail(mol, entity)}
+            onOpenMolecule={(mol, opts) => openMoleculeDetail(mol, entity, opts)}
           />
         )}
 
@@ -271,6 +276,7 @@ export default function App() {
           <MoleculeDetailPage
             entity={entity}
             molecule={selectedMolecule}
+            scrollTo={scrollTo}
             onBack={goBack}
             onOpenEntity={openMolecules}
           />

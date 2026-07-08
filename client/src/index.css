@@ -1002,6 +1002,8 @@ button.ent-link {
 .molecule-detail-value {
   color: #333;
   min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .molecule-preview-tabs {
@@ -1443,20 +1445,15 @@ button.ent-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #b9c2cc;
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: normal;
-  transition: background 0.15s ease;
+  width: 15px;
+  height: 15px;
+  color: #b9c2cc;
+  transition: color 0.15s ease;
 }
 
 .fdb-infotip:hover .fdb-infotip-mark,
 .fdb-infotip:focus .fdb-infotip-mark {
-  background: #1565c0;
+  color: #1565c0;
 }
 
 .fdb-infotip-bubble {
@@ -1600,8 +1597,19 @@ button.ent-link {
   color: inherit;
   font-weight: 500;
 }
+.legacy-panel-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease-out;
+}
+.legacy-panel-collapse.open {
+  grid-template-rows: 1fr;
+}
+.legacy-panel-body-wrapper {
+  overflow: hidden;
+}
 .legacy-panel-body {
-  padding: 15px;
+  padding: 20px 30px;
   border-top: 1px solid #ddd;
   font-size: 14px;
   line-height: 1.6;
@@ -1609,3 +1617,39 @@ button.ent-link {
 .legacy-jumbotron.text-center {
   text-align: center;
 }
+.fdb-team-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.fdb-team-table th,
+.fdb-team-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.fdb-team-table th {
+  font-weight: 600;
+  color: #333;
+  border-top: 1px solid #eaeaea;
+}
+
+.fdb-team-table tbody tr:nth-child(even) {
+  background-color: #fdfdfd;
+}
+
+.fdb-team-table tbody tr:nth-child(odd) {
+  background-color: #f8f9fa;
+}
+
+.fdb-team-table a {
+  color: #31708f;
+  text-decoration: none;
+  font-weight: 500;
+}
+.fdb-team-table a:hover {
+  text-decoration: underline;
+}
+
