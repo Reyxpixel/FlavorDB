@@ -4,7 +4,7 @@ import { Spinner, TableWrap, formatTags } from './Shared';
 
 const PAGE_SIZE = 20;
 
-// Human-readable one-line summary of the criteria that produced this result set.
+
 function describeQuery(query) {
   const labels = {
     common_name: 'Common Name',

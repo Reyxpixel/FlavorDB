@@ -147,7 +147,17 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
                   <th>Common Name</th>
                   <th>PubChem ID</th>
                   <th>Present In</th>
-                  <th className="right">Relevance Score</th>
+                  <th className="right">
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      Relevance Score
+                      <span className="fdb-infotip">
+                        <span className="fdb-infotip-mark">?</span>
+                        <span className="fdb-infotip-bubble fdb-infotip-bubble-right" style={{ fontWeight: 'normal', textTransform: 'none', textAlign: 'left' }}>
+                          The Relevance Score of a molecule captures its uniqueness. It is calculated as the inverse of its document frequency: 1/df(m), where df(m) is the total number of ingredients that contain this molecule.
+                        </span>
+                      </span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -172,7 +182,21 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
                         )}
                         <RarityChip rarity={row.rarity} />
                       </td>
-                      <td className="muted mono">{row.pubchem_id}</td>
+                      <td className="muted mono">
+                        <a 
+                          href={`https://pubchem.ncbi.nlm.nih.gov/compound/${row.pubchem_id}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          style={{ color: '#1565c0', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          {row.pubchem_id}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                          </svg>
+                        </a>
+                      </td>
                       <td className="muted">{row.df} ingredient{row.df !== 1 ? 's' : ''}</td>
                       <td className="right" style={{ whiteSpace: 'nowrap' }}>
                         <ImpBar pct={pct} />

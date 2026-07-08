@@ -1,0 +1,756 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<link rel="icon" href="/flavordb/static/images/favicon.ico">
+
+	<title>FlavorDB</title>
+
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script type="application/javascript" src="/flavordb/static/Jmol/Jmol.js"></script>
+
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/dt-1.10.15/r-2.1.1/se-1.2.2/datatables.min.css"/>
+
+	<script type="text/javascript" src="https://cdn.datatables.net/v/bs/dt-1.10.15/r-2.1.1/se-1.2.2/datatables.min.js"></script>
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+
+	<script>
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+	ga('create', 'UA-102869016-1', 'auto');
+	ga('send', 'pageview');
+
+	</script>
+	
+<script src="/flavordb/static/js/entities.js"></script>
+
+
+</head>
+
+<body>
+
+	<!-- Fixed navbar -->
+	<nav class="navbar navbar-inverse">
+		<div class="container">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a  class="navbar-brand" style="padding-top: 0.5em;" href="/flavordb/"><img src="/flavordb/static/images/FDB_Logo.png"></a>
+			</div>
+			<div id="navbar" class="navbar-collapse collapse">
+				<!-- <ul class="nav navbar-nav">
+					<li><a href="http://faculty.iiitd.ac.in/~bagler/">Lab Home</a></li>
+					<li><a href="/flavordb/search">Flavor DB</a></li>
+					<li><a href="/flavordb/faq">FAQs</a></li>
+					<li><a href="/flavordb/contact">Contact Us</a></li>
+					<li><a href="/flavordb/how_to_use">How To Use FlavorDB</a></li>
+				</ul> -->
+				<ul class="nav navbar-nav navbar-right">
+					<!-- <li><a target="_blank" href="https://www.iiitd.ac.in"><img src="/flavordb/static/images/iiitd.png"></a></li> -->
+					<li><a href="/flavordb/search">FlavorDB Search</a></li>
+					<li><a href="/flavordb/how_to_use">How To Use</a></li>
+					<li><a href="/flavordb/receptors">Receptors</a></li>
+					<li><a href="/flavordb/faq">FAQs</a></li>
+					<li><a href="/flavordb/contact">Contact Us</a></li>
+					<li><a href="http://cosylab.iiitd.edu.in">CoSyLab</a></li>
+
+				</ul>
+			</div>
+			<!--/.nav-collapse -->
+		</div>
+	</nav>
+	
+<div class="container">
+	<div class="jumbotron text-center">
+		<h2><strong>Frequently Asked Questions (FAQs)</strong></h2>
+		
+	</div>
+
+	<div class="panel-group" id="accordion">
+		<div class="panel panel-default">
+			<a data-toggle="collapse" data-parent="#accordion" href="#collapse4">
+				<div class="panel-heading">
+					<h4 class="panel-title">
+						Q1: What are the various ingredient categories within FlavorDB?
+					</h4>
+				</div>
+			</a>
+			<div id="collapse4" class="panel-collapse collapse">
+				<div class="panel-body" id="entities">
+					<strong>
+						<ul>
+							<li>Additive</li>
+							<li>Animal Product</li>
+							<li>Bakery</li>
+							<li>Beverage</li>
+							<li>Beverage Alcoholic</li>
+							<li>Beverage Caffeinated</li>
+							<li>Cereal</li>
+							<li>Maize</li>
+							<li>Dairy</li>
+							<li>Dish</li>
+							<li>Essential Oil</li>
+							<li>Fish</li>
+							<li>Seafood</li>
+							<li>Flower</li>
+							<li>Fruit</li>
+							<li>Berry</li>
+							<li>Fruit Citrus</li>
+							<li>Fruit Essence</li>
+							<li>Fungus</li>
+							<li>Herb</li>
+							<li>Meat</li>
+							<li>Legume</li>
+							<li>Nut</li>
+							<li>Seed</li>
+							<li>Plant</li>
+							<li>Plant Derivative</li>
+							<li>Spice</li>
+							<li>Vegetable</li>
+							<li>Cabbage</li>
+							<li>Vegetable Fruit</li>
+							<li>Gourd</li>
+							<li>Vegetable Root</li>
+							<li>Vegetable Stem</li>
+							<li>Vegetable Tuber</li>
+						</ul>
+					</strong>
+				</div>
+			</div>
+		</div>
+
+		
+
+		<div class="panel panel-default">
+			<a data-toggle="collapse" data-parent="#accordion" href="#collapse6">
+				<div class="panel-heading">
+					<h4 class="panel-title">
+						Q2: What is ZINC Similarity Search?
+					</h4>
+				</div>
+			</a>
+			<div id="collapse6" class="panel-collapse collapse">
+				<div class="panel-body"><strong> ZINC is a free public resource for discovery of drug-like molecules. The database contains over twenty million commercially available molecules in biologically relevant representations that may be downloaded in popular ready-to-dock formats and subsets. The similarity search done against ZINC compares the input SMILE and each SMILE present in the database. Depending upon the similarity percentage (Eg: 90% which is the default threshold) it displays the similar compounds.<br>
+
+				For further information please visit the ZINC database: <a target="_blank" href="http://zinc15.docking.org/">http://zinc15.docking.org/</a></strong>
+				</div>
+			</div>
+		</div>
+
+		<div class="panel panel-default">
+			<a data-toggle="collapse" data-parent="#accordion" href="#collapse15">
+				<div class="panel-heading">
+					<h4 class="panel-title">
+						Q3: How do I use the “Flavor Pairing” app?
+					</h4>
+				</div>
+			</a>
+			<div id="collapse15" class="panel-collapse collapse">
+				<div class="panel-body"><strong> 
+
+					Refer to the Flavor Pairing section on the <a href="/flavordb/how_to_use">how to use</a> page
+				</strong>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel panel-default">
+		<a data-toggle="collapse" data-parent="#accordion" href="#collapse16">
+			<div class="panel-heading">
+				<h4 class="panel-title">
+					Q4: What are FlavorDB Statistics?
+				</h4>
+			</div>
+		</a>
+		<div id="collapse16" class="panel-collapse collapse">
+			<div class="panel-body"><strong> 
+
+				<a href="http://cosylab.iiitd.edu.in/flavordb/#visual_search">Flavor DB statistics</a> explain the vastness and depth of flavor DB using interactive Google Charts (<a href="https://developers.google.com/chart/" target="_blank">https://developers.google.com/chart/</a>).
+			</strong>
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse17">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q5: How do I use “Visual Search”?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse17" class="panel-collapse collapse">
+		<div class="panel-body"><strong> 
+
+			Refer to the Visual Search section on the <a href="/flavordb/how_to_use">how to use</a> page
+		</strong>
+	</div>
+</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse18">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q6: How to use “Advanced Search”?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse18" class="panel-collapse collapse">
+		<div class="panel-body"><strong> 
+
+			Refer to the Advanced Search section on the <a href="/flavordb/how_to_use">how to use</a> page
+		</strong>
+	</div>
+</div>
+</div>
+
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse14">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q7: How was “The Flavor Network” constructed?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse14" class="panel-collapse collapse">
+		<div class="panel-body"><strong> 
+
+			Flavor network was constructed using <a href="https://d3js.org/" target="_blank">d3.js</a> hierarchical edge bundeling (<a href="https://bl.ocks.org/mbostock/7607999" target="_blank">https://bl.ocks.org/mbostock/7607999</a>).To address dense pattern of interrelationships due to abundance of sharing, the backbone network showing statistically significant edges is depicted.
+
+		</strong>
+	</div>
+</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse7">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q8: How do you perform a similarity search?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse7" class="panel-collapse collapse">
+		<div class="panel-body"><strong> One search option provided is to perform a molecular search by using the JSME tool. With this one can draw a molecule’s structure and search for similar molecules. For each structure that is drawn, the JSME Molecular Editor generates its corresponding SMILE value. We then run the SMILE value through Open Babel to generate a molecular fingerprint. 
+		<br><br>
+		Then we check molecular structural similarity using Open Babel to calculate the Tanimoto Coefficient between the generated fingerprint and data from our database. We use a threshold value of 0.3 to display our results. Thus, only molecules that have a similarity level of 30% or higher are displayed.</strong>
+
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse100">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q9: What are the different concepts used in FlavorDB and how to they relate to each other?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse100" class="panel-collapse collapse">
+		<div class="panel-body"><strong>The illustration depicts relationships among different concepts incorporated in FlavorDB. The 'Entity is synonymous to an Ingredient', and is a key concept in the framework. In this example, ‘Onion’ is an Entity/Ingredient which is classified into the Category ‘Vegetable’. The natural origin (plant or animal species/genus/family/kingdom) of an ingredient is referred to as the Natural Source, which in the case of onion is ‘Allium’. Each ingredient comprises a set of flavor molecules. And further, each flavor molecule is characterized by a ‘flavor profile’ (a set of flavor terms) and by an array of ‘molecular properties’ (Physicochemical, 2D/3D and ADMET).
+		<br><br>
+
+		<img style="max-height: 50em; max-width: 50em;" src="/flavordb/static/images/concepts_fdb_faq.jpg">
+
+		</strong></div>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse1">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q10: Prerequisites needed to run FlavorDB?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse1" class="panel-collapse collapse">
+		<div class="panel-body"><strong> A modern web browser with JavaScript enabled.</strong></div>
+	</div>
+</div>
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse2">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q11: What browsers does FlavorDB support?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse2" class="panel-collapse collapse">
+		<div class="panel-body"><strong>FlavorDB supports all modern web browsers. But the Flavor Network can be best viewed on Chrome, Firefox and Edge</strong></div>
+	</div>
+</div>
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse3">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q12: What is Tech Stack used to build FlavorDB?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse3" class="panel-collapse collapse">
+		<div class="panel-body"><strong>Front End: HTML, CSS, JavaScript, AJAX, jQuery(v1.12.4), Bootstrap(v3.3.7), DataTables(<a href="https://datatables.net" target="_blank">https://datatables.net/</a>), Google Charts(<a href="https://developers.google.com/chart/" target="_blank">https://developers.google.com/chart/</a>) ,D3.js
+			JSME Molecular Editor(<a href="http://peter-ertl.com/jsme/" target="_blank">http://peter-ertl.com/jsme/</a>), Jmol: an open-source Java viewer for chemical structures in 3D. <a target="_blank" href="http://www.jmol.org/">http://www.jmol.org/</a>
+			Back End: Python, Django, Mysql, OpenBabel(v2.4.0)</strong>
+		</div>
+	</div>
+</div>
+
+
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse5">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q13: What is Jmol?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse5" class="panel-collapse collapse">
+		<div class="panel-body" id="entities"><strong> Jmol: an open-source Java viewer for chemical structures in 3D. <a target="_blank" href="http://www.jmol.org/">http://www.jmol.org/</a><br>
+			Jmol does not require 3D acceleration plugins. Jmol returns a 3D representation of a molecule that may be used as a teaching tool, or for research e.g. in chemistry and biochemistry. It is free and open source software, written in Java and so it runs on Windows, Mac OS X, Linux and Unix systems.
+
+			Few technical advantages of Jmol are:
+			<ul>
+				<li>Molecular 3D visualisation</li>
+				<li>Zooming facilities</li>
+				<li>Provision to download the viewed molecule in mol2 format</li>
+			</ul>
+			For further information please visit the Jmol website: <a target="_blank" href="http://jmol.sourceforge.net/">here</a>
+		</div>
+	</div>
+</div>
+
+
+
+
+
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse8">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q14: What do I need to have the Jmol files to render properly?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse8" class="panel-collapse collapse">
+		<div class="panel-body"><strong> A modern web browser with JavaScript enabled.</strong></div>
+	</div>
+</div>
+
+
+<!-- <div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse9">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q14: How do I download information and data files of a molecule from FlavorDB and in which formats?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse9" class="panel-collapse collapse">
+		<div class="panel-body"><strong> The data of a molecule can be downloaded in Mol2, 2D image, SDF, SMILE and JSON format, using the links provided on each molecules flavor and property page.</strong></div>
+	</div>
+</div> -->
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse10">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q15: What is the source of data and images?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse10" class="panel-collapse collapse">
+		<div class="panel-body">
+			<strong> 
+				To begin with, a list of ingredients was created using, Foodb (<a href="http://foodb.ca" target="_blank">http://foodb.ca</a>) and arXiv preprint arXiv:1502.03815, 2015. Each of the 951 ingredients were then manually classified into 34 categories: Additive, Animal Product, Bakery, Beverage, Beverage Alcoholic, Beverage Caffeinated, Cereal, Maize, Dairy, Dish, Essential Oil, Fish, Seafood, Flower, Fruit, Berry, Fruit Citrus, Fruit Essence, Fungus, Herb, Meat, Legume, Nut, Seed, Plant, Plant Derivative, Spice, Vegetable, Cabbage, Vegetable Fruit, Gourd, Vegetable Root, Vegetable Stem, and Vegetable Tuber. Each entity was also mapped to its natural source, with a total of 532 unique sources being identified. The details of entities and their natural sources, related images, and scientific classification were obtained from Wikipedia using Python’s BeautifulSoup4 library (<a href="https://www.crummy.com/software/BeautifulSoup" target="_blank">https://www.crummy.com/software/BeautifulSoup</a>) and MediaWiki’s action API (MediaWiki The Free Wiki Engine).
+
+				<br><br>
+				The data of flavor molecules for each of these ingredients were compiled via literature survey, flavor resources, and previously reported data:
+
+				<ul>
+					<li>Burdock,G.A. (2010) Fenaroli’s handbook of flavor ingredients.</li>
+					<li>Ahn,Y.-Y., Ahnert,S.E., Bagrow,J.P. and Barabási,A.-L. (2011) Flavor network and the principles of food pairing. Sci. Rep., 1, 196.</li>
+					<li>Jain,A., Rakhi,N.K. and Bagler,G. (2015) Analysis of food pairing in regional cuisines of India. PLoS One, 10.</li>
+					<li>Jain,A., Rakhi,N.K. and Bagler,G. (2015) Spices form the basis of food pairing in Indian cuisine. arXiv:1502.03815.</li>
+					<li>www.foodb.ca</li>
+					<li>Arn,H. and Acree,T.E. (1998) Flavornet: A database of aroma compounds based on odor potency in natural products. Dev. Food Sci., 40, 27.</li>
+					<li>Ahmed,J., Preissner,S., Dunkel,M., Worth,C.L., Eckert,A. and Preissner,R. (2011) SuperSweet-A resource on natural and artificial sweetening agents. Nucleic Acids Res., 39.</li>
+					<li>Wiener,A., Shudler,M., Levit,A. and Niv,M.Y. (2012) BitterDB: A database of bitter compounds. Nucleic Acids Res., 40, 413–419, D377-82.</li>
+
+				</ul>
+
+				The data of flavor molecules for each of these ingredients were compiled via flavor resources such as Fenaroli’s handbook of flavor ingredients, previously reported data and literature survey. Common names, scientific name and synonyms of ingredients were used to query PubMed to obtain articles that reported their flavor molecules. Flavor molecules associated with entities/ingredients were thus curated from existing sources and compiled manually. Molecules from SuperSweet, BitterDB and Flavornet were further included along with their flavor profiles. Additionally, information for 33 taste receptors including Sweet, Bitter, Sour, and Umami is also available in FlavorDB. For each receptor, we provide its Uniprot ID, name, involvement in taste, and Uniprot link. 
+				<br>
+				<br>
+				The chemical identifiers of molecules were obtained from various sources, and were standardized to procure their CAS (Chemical Abstract Service) numbers. CAS numbers were then mapped to their corresponding PubChem IDs, as the former are often degenerate with multiple CAS numbers pointing to the same molecule, and some pointing to multiple molecules. Thus, PubChem ID was used as the unique primary key for every flavor molecule. Using the PubChem ID, compound identifiers (such as common name, IUPAC, Canonical SMILES), physicochemical properties and 2D images were obtained from PubChem REST API (<a href="https://pubchem.ncbi.nlm.nih.gov/pug_rest/PUG_REST.html" target="_blank">https://pubchem.ncbi.nlm.nih.gov/pug_rest/PUG_REST.html</a>). The flavor profile of the molecule (FEMA Flavor Profile, FEMA Number, Taste, and Odor) was downloaded from PubChem.
+				<br>
+				<br>
+				Further 2D/3D, ADMET and physicochemical properties as well as Mol2 files for all 25595 molecules were obtained using Discovery Studio 4.0. The functional groups were obtained using Checkmol software. Functional group refers to an atom, or a group of atoms that have similar chemical properties whenever they occur in different compounds. Thus, it defines the characteristic physical and chemical properties of families of organic compounds.<br>
+
+			</strong>
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse11">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q16: What are Functional Groups and how were they obtained?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse11" class="panel-collapse collapse">
+		<div class="panel-body"><strong> 
+			Functional Groups:- The functional group is an atom, or a group of atoms that has similar chemical properties whenever it occurs in different compounds. It defines the characteristic physical and chemical properties of families of organic compounds. (<a href="http://goldbook.iupac.org/F02555.html" target="_blank">http://goldbook.iupac.org/F02555.html</a>)<br><br>
+			Checkmol: - A free and an open source tool, checkmol, detect and assign the functional group information on any small molecules with 2D coordinates. The checkmol is a command-line utility program, which reads molecular structure files in different formats and analyzes the input molecule for the presence of various functional groups. The output text can be easily placed into a database table, permitting the creation of chemical databases with a functional group search option.<br><br>
+			<ol>
+				<li><p>
+					Analysis of Functional Groups in Organic Molecules, <a href="http://merian.pch.univie.ac.at/~nhaider/cheminf/cmmm.html" target="_blank">http://merian.pch.univie.ac.at/~nhaider/cheminf/cmmm.html</a>
+				</p></li>
+				<li>
+					<p>
+						N. Haider, Functionality pattern matching as an efficient complementary structure/reaction search tool: an open-source approach, Molecules 15 (8) (2010) 5079–5092.( <a href="http://www.mdpi.com/1420-3049/15/8/5079">http://www.mdpi.com/1420-3049/15/8/5079</a>)
+					</p>
+				</li>
+			</ol>
+
+			Total List of functional groups generated by Checkmol :- (<a href="http://merian.pch.univie.ac.at/~nhaider/cheminf/fgtable.pdf" target="_blank">http://merian.pch.univie.ac.at/~nhaider/cheminf/fgtable.pdf</a>)</strong>
+
+
+		</div>
+	</div>
+</div>
+
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse12">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q17: Do you use cookies?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse12" class="panel-collapse collapse">
+		<div class="panel-body">
+			<strong> 
+
+				We are using cookies to provide statistics that help us give best experience for our site.
+			</strong>
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse20">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q18: Can we use FlavorDB in mobiles?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse20" class="panel-collapse collapse">
+		<div class="panel-body">
+			<strong> 
+
+				Yes, just visit flavorDB from your mobile browser. But the data visualizations such as flavor network are best viewed on desktop.
+			</strong>
+		</div>
+	</div>
+</div>		
+
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse21">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q19: How do I access the data from FlavorDB?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse21" class="panel-collapse collapse">
+		<div class="panel-body">
+			<strong> 
+
+				Data is accessible for molecules as well as entities/ingredients. These can be downloaded in JSON format from the ‘Molecular & Flavor Profile’ tab (More Info.) and the entity page respectively. The molecules’ data can also be obtained in Mol2, 2D Image and SDF formats. These data are available under a <a href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons License Attribution-NonCommercial-ShareAlike 3.0 Unported (CC BY-NC-SA 3.0)</a>. 
+				<br><br>
+				<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a>
+			</strong>
+		</div>
+	</div>
+</div>
+
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse22">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q20: How do I contribute to data?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse22" class="panel-collapse collapse">
+		<div class="panel-body">
+			<strong> 
+				You may contact us at <a href="/flavordb/contact" target="_blank"> bagler+FlavorDB@iiitd.ac.in</a> for errata or suggesting information of flavor profile and ingredient association with relevant references.
+				<br><br>
+				You may also fill the following forms to report errors or giving suggestions.
+				<br><br>
+				Suggestions Form for reporting new flavor molecules or Entity/Ingredient associations: <br>
+				<a href="https://docs.google.com/forms/d/e/1FAIpQLSe9m_rNojup_dQohU3gHA-ByYbbbB9-x6bv4knyxu0ZQ2ClTA/viewform" target="_blank">https://docs.google.com/forms/d/e/1FAIpQLSe9m_rNojup_dQohU3gHA-ByYbbbB9-x6bv4knyxu0ZQ2ClTA/viewform</a> 
+				<br><br>
+				Errata Form to report errors in data: <br>
+				<a href="https://docs.google.com/forms/d/e/1FAIpQLSfRYt6D4-c9UKGFpvvucqRvV871pMix6mnC1cskT9CXcEiLLw/viewform" target="_blank">https://docs.google.com/forms/d/e/1FAIpQLSfRYt6D4-c9UKGFpvvucqRvV871pMix6mnC1cskT9CXcEiLLw/viewform</a>
+
+				
+			</strong>
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse23">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q21: Under what license is FlavorDB available?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse23" class="panel-collapse collapse">
+		<div class="panel-body">
+			<strong> 
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a style="font-weight: bold;" rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+			</strong>
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse25">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q21: How to Cite us?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse25" class="panel-collapse collapse">
+		<div class="panel-body">
+			<strong> 
+				Neelansh Garg†, Apuroop Sethupathy†, Rudraksh Tuwani†, Rakhi NK†, Shubham Dokania†, Arvind Iyer†, Ayushi Gupta†, Shubhra Agrawal†, Navjot Singh†, Shubham Shukla†, Kriti Kathuria†, Rahul Badhwar, Rakesh Kanji, Anupam Jain, Avneet Kaur, Rashmi Nagpal, and Ganesh Bagler*, FlavorDB: A database of flavor molecules, Nucleic Acids Research, gkx957, (2017). †Equal contribution *Corresponding Author
+			</strong>
+		</div>
+	</div>
+</div>
+
+
+<div class="panel panel-default">
+	<a data-toggle="collapse" data-parent="#accordion" href="#collapse24">
+		<div class="panel-heading">
+			<h4 class="panel-title">
+				Q22: Who is the team behind FlavorDB?
+			</h4>
+		</div>
+	</a>
+	<div id="collapse24" class="panel-collapse collapse">
+		<div class="panel-body">
+
+			<table class="table table-striped">
+				<thead>
+					<th>Name</th>
+					<th>Position</th>
+					<th>Affiliation</th>
+					<th>Contribution</th>
+				</thead>
+				<tbody>
+					<tr>
+						<td><a href="/flavordb/contact">Ganesh Bagler</a></td>
+						<td>Project Head</td>
+						<td>Center for Computational Biology, Indraprastha Institute of Information Technology (IIIT-Delhi), New Delhi</td>
+						<td>Idea conception, Project design and management, Database design and implementation   </td>
+					</tr>
+					<tr>
+						<td>Neelansh Garg</td>
+						<td>Summer Research Intern</td>
+						<td>USICT, Guru Gobind Singh Indraprastha University, New Delhi</td>
+						<td>Database design, Development of FlavorDB Web Resource, Data Mining, Data Visualisation and Data Analytics </td>
+					</tr>
+					<tr>
+						<td>Apuroop Sethupathy</td>
+						<td>Summer Research Intern</td>
+						<td>Ashoka University, Sonepat</td>
+						<td>Database design, Development of FlavorDB Web Resource, Data Mining, Data Visualisation and Data Analytics </td>
+					</tr>
+					<tr>
+						<td>Rudraksh Tuwani</td>
+						<td>Summer Research Intern</td>
+						<td>Sri Venkateswara College, Delhi University</td>
+						<td>Natural Language Processing, feature extraction, Data Mining and Data Analytics </td>
+					</tr>
+					<tr>
+						<td>Rakhi N K</td>
+						<td>PhD Research Scholar</td>
+						<td>Department of Bioscience and Bioengineering, Indian Institute of Technology Jodhpur, Jodhpur</td>
+						<td>Manual data compilation, and curation, Quality Check, food pairing analysis</td>
+					</tr>
+					<tr>
+						<td>Shubham Dokania</td>
+						<td>Summer Research Intern</td>
+						<td>Delhi Technological University, New Delhi</td>
+						<td>Feature extraction and data mining</td>
+					</tr>
+					<tr>
+						<td>Arvind Iyer</td>
+						<td>M.Tech (Computational Biology) Student</td>
+						<td>Center for Computational Biology, Indraprastha Institute of Information Technology (IIIT-Delhi), New Delhi</td>
+						<td>Database design, Development of FlavorDB Web Resource, Data Mining</td>
+					</tr>
+					<tr>
+						<td>Ayushi Gupta</td>
+						<td>M.Tech (Computational Biology) Student</td>
+						<td>Center for Computational Biology, Indraprastha Institute of Information Technology (IIIT-Delhi), New Delhi</td>
+						<td>Data compilation, curation and Data structure design </td>
+					</tr>
+					<tr>
+						<td>Shubhra Agrawal</td>
+						<td>M.Tech Student</td>
+						<td>Center for Computational Biology, Indraprastha Institute of Information Technology (IIIT-Delhi), New Delhi</td>
+						<td>Data compilation, curation and Data structure design </td>
+					</tr>
+					<tr>
+						<td>Navjot Singh</td>
+						<td>Summer Research Intern</td>
+						<td>Delhi Technological University, New Delhi</td>
+						<td>Food pairing analysis</td>
+					</tr>
+					<tr>
+						<td>Shubham Shukla</td>
+						<td>Summer Research Intern</td>
+						<td>Northern India Engineering College, Guru Gobind Singh Indraprastha University, New Delhi</td>
+						<td>Data extraction and Quality Check </td>
+					</tr>
+					<tr>
+						<td>Kriti Kathuria</td>
+						<td>Summer Research Intern</td>
+						<td>Maharaja Agrasen College, Delhi University, New Delhi</td>
+						<td>Data retrieval and compilation, Quality Check</td>
+					</tr>
+					<tr>
+						<td>Anupam Jain</td>
+						<td>M.Tech. (Systems Science) Student</td>
+						<td>Department of Bioscience and Bioengineering, Indian Institute of Technology Jodhpur, Jodhpur</td>
+						<td>Data compilation and food pairing analysis</td>
+					</tr>
+					<tr>
+						<td>Rahul Badhwar</td>
+						<td>PhD Research Scholar</td>
+						<td>Department of Bioscience and Bioengineering, Indian Institute of Technology Jodhpur, Jodhpur</td>
+						<td>Molecular properties extraction</td>
+					</tr>
+
+					<tr>
+						<td>Rakesh Kanji</td>
+						<td>PhD Research Scholar</td>
+						<td>Department of Bioscience and Bioengineering, Indian Institute of Technology Jodhpur, Jodhpur</td>
+						<td>Molecular properties extraction</td>
+					</tr>
+
+					<tr>
+						<td>Avneet Kaur</td>
+						<td>Research Intern</td>
+						<td>Center for Computational Biology, Indraprastha Institute of Information Technology (IIIT-Delhi), New Delhi</td>
+						<td>Data compilation assistance</td>
+					</tr>
+
+					<tr>
+						<td>Rashmi Nagpal</td>
+						<td>Research Intern</td>
+						<td>Center for Computational Biology, Indraprastha Institute of Information Technology (IIIT-Delhi), New Delhi</td>
+						<td>Data compilation assistance</td>
+					</tr>
+
+
+				</tbody>
+			</table>
+
+		</div>
+	</div>
+</div>
+
+</div>
+
+</div>
+
+
+
+
+<footer class="primary-footer">
+	<div class="copyright-wrap">
+		<div class="panel">
+			<div class="content">
+				<p><img alt="" src="/flavordb/static/images/iiitd.png"></p>
+				<P>Copyright &copy; 2017 &nbsp All rights reserved.<br><br>
+					<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a style="font-weight: bold;" rel="license" href="http://creativecommons.org/licenses/by-nc-sa/3.0/">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License</a>.
+				</P>
+				<p><a href="https://iiitd.ac.in/" target="_blank"><strong>Indraprastha Institute of Information Technology Delhi (IIIT-Delhi)</strong></a> | <a       href="http://faculty.iiitd.ac.in/~bagler/" target="_blank">Dr. Ganesh Bagler</a></p>
+				<P><a target="_blank" href="https://www.facebook.com/ganesh.bagler"><img src="/flavordb/static/images/facebook.png" alt="facebook" /></a>
+					<a target="_blank" href="https://twitter.com/gansbags"><img src="/flavordb/static/images/twitter.png" alt="tiwwter" /></a>
+					<a target="_blank" href="https://www.linkedin.com/in/ganeshbagler"><img src="/flavordb/static/images/linkedin.png" alt="linkedin'" /></a>
+				</P>
+
+			</div>
+		</div>
+	</div>
+</footer>
+<style type="text/css">
+	.primary-footer{margin-top:10px;}
+	.footer-wrap{ background:#1a202c;padding-top:50px; margin-top:50px; padding-bottom:50px;}
+	.footer .panel{float:left; background:none; width:300px;}
+	.footer .panel .title h1{ color:#ffffff;}
+	.footer .panel .content{padding-top:25px;}
+	.footer .panel .content p{ color:#435059;}
+	.footer .panel .content .button a{ margin-top:30px; background:#d13f31;}
+	.footer .panel .content .button a:hover{ margin-top:30px; background:#1f7872;}
+	.footer .panel .content ul li{ list-style:url(/flavordb/static/images/arrow.png) inside;}
+	.footer .panel .content ul li a{text-decoration:none; color:#435059;}
+	.footer .panel .content ul li a:hover{color:#d13f31;}
+	.copyright-wrap{ background:#1f7872; overflow:hidden; padding:40px 0px 40px 0px;}
+	.copyright-wrap .panel{margin:0 auto; background:none;}
+	.copyright-wrap .panel .content p{ color:#ffffff; text-align:center; font-size:12px;}
+	.copyright-wrap .panel .content p a{ text-decoration:none; color:#ffffff;}
+	.copyright-wrap .panel .content p a:hover{ color:#1a202c;}
+</style>
+
+
+</body>
+</html>

@@ -10,31 +10,31 @@ const MAX_CONCURRENT = 16;
 
 const cache = {
   allEntitiesPromise: null,
-  moleculesByEntity: new Map(),      // entityId -> Promise<array>
-  moleculeDfByPubchemId: new Map(),  // pubchemId -> Promise<number>
-  moleculeEntitiesPayloadByPubchemId: new Map(), // pubchemId -> Promise<payload>
-  moleculeOverviewByPubchemId: new Map(), // pubchemId -> Promise<overview>
-  moleculeDetailsHtmlByPubchemId: new Map(), // pubchemId -> Promise<html>
-  moleculeMorePropertiesByPubchemId: new Map(), // pubchemId -> Promise<flat properties>
-  foodPairingsByName: new Map(),     // name -> Promise<array>
-  pairingsByKey: new Map(),          // `${entityId}|${entityName}` -> Promise<array>
-  searchByName: new Map(),           // query -> Promise<array>
-  autocompleteCache: new Map(),      // key -> Promise<array>
-  moleculeSearchCache: new Map(),     // query key -> Promise<array>
-  allMoleculesPromise: null,          // Promise<array>
+  moleculesByEntity: new Map(),      
+  moleculeDfByPubchemId: new Map(),  
+  moleculeEntitiesPayloadByPubchemId: new Map(), 
+  moleculeOverviewByPubchemId: new Map(), 
+  moleculeDetailsHtmlByPubchemId: new Map(), 
+  moleculeMorePropertiesByPubchemId: new Map(), 
+  foodPairingsByName: new Map(),     
+  pairingsByKey: new Map(),          
+  searchByName: new Map(),           
+  autocompleteCache: new Map(),      
+  moleculeSearchCache: new Map(),     
+  allMoleculesPromise: null,          
 };
 
 app.use(cors());
 app.use(express.json());
 
-// ─── pLimit shim (works with both ESM p-limit and CJS fallback) ───────────
+
 let pLimit;
 (async () => {
   try {
     const mod = await import('p-limit');
     pLimit = mod.default;
   } catch {
-    // simple fallback concurrency limiter
+    
     pLimit = (n) => {
       let active = 0;
       const queue = [];
@@ -60,7 +60,7 @@ let pLimit;
   }
 })();
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
+
 
 const ALL_CATEGORIES = [
   'additive', 'animalproduct', 'bakery', 'beverage', 'beveragealcoholic',
@@ -77,9 +77,9 @@ async function fdbGet(path, params = {}) {
     const res = await axios.get(url, { params, timeout: 30000 });
     return res.data;
   } catch (err) {
-    // Log the upstream server's actual response body (not just axios's generic
-    // "Request failed with status code N" message) so validation errors like
-    // bad page size or out-of-range params are visible instead of guesswork.
+    
+    
+    
     const status = err.response?.status;
     const body = err.response?.data;
     console.error(
@@ -99,7 +99,7 @@ function bestList(payload) {
   for (const key of ['content', 'data', 'results', 'items', 'molecules', 'entities']) {
     if (Array.isArray(payload[key])) return payload[key];
   }
-  // walk to find longest array
+  
   let best = [];
   function walk(obj) {
     if (Array.isArray(obj)) {
@@ -138,7 +138,7 @@ function parseMoleculeRows(payload) {
     if (!item || typeof item !== 'object') return acc;
     const pid = item.pubchem_id ?? item.pubchemId ?? item.id;
     if (pid == null) return acc;
-    // Preserve df if the compact endpoint provides it
+    
     const df = item.df ?? item.frequency ?? item.document_frequency ?? item.documentFrequency ?? null;
     acc.push({
       pubchem_id: parseInt(pid, 10),
@@ -423,10 +423,10 @@ async function fetchPubChemProperties(pubchemId) {
 }
 
 function extractFlatProperties(payload) {
-  // The more_properties endpoint likely returns a paginated response like:
-  // {content: [{pubchem_id: 7664, admet_solubility: -3.33, ...}]}
-  // OR it may return the array directly.
-  // Try to find the first object that looks like a properties record.
+  
+  
+  
+  
   const candidates = [];
 
   function collectFlat(obj) {
@@ -435,7 +435,7 @@ function extractFlatProperties(payload) {
       obj.forEach(collectFlat);
       return;
     }
-    // If this object has admet or property-looking keys, it's a candidate
+    
     const keys = Object.keys(obj);
     const hasProps = keys.some(k => {
       const kl = k.toLowerCase();
@@ -453,7 +453,7 @@ function extractFlatProperties(payload) {
 
   if (candidates.length === 0) return {};
 
-  // Merge all candidates (in case properties are split across multiple objects)
+  
   const merged = {};
   candidates.forEach(c => Object.assign(merged, c));
   return merged;
@@ -484,7 +484,7 @@ function parseMoleculeDetailsHtml(html) {
   let match;
   while ((match = liRegex.exec(html))) addPair(match[1], match[2]);
 
-  // Fallback parser: table rows like <tr><td>Label</td><td>Value</td></tr>
+  
   const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   while ((match = trRegex.exec(html))) {
     const rowHtml = match[1] || '';
@@ -591,7 +591,7 @@ function deriveCompositionFromFormula(formula) {
 
 
 function buildSectionsFromMerged(pubProps, flat) {
-  // Build scrollable sections from a mixed flat object (HTML labels + snake_case keys)
+  
   const fromPubChem = (key) => {
     const value = pubProps?.[key];
     return value === undefined || value === null || value === '' ? null : String(value);
@@ -694,7 +694,7 @@ function buildSectionsFromMerged(pubProps, flat) {
   return { physicochemical, admet, structure };
 }
 
-// Alias for any remaining references
+
 const buildSectionsFromPubChem = buildSectionsFromMerged;
 
 
@@ -986,12 +986,12 @@ async function fetchMoleculeCriteria(field, value, extra = {}) {
   if (cache.moleculeSearchCache.has(cacheKey)) return cache.moleculeSearchCache.get(cacheKey);
 
   const task = (async () => {
-    // These three fields store several '@'-delimited tags per molecule, and the
-    // upstream by-functionalGroups / by-flavorProfile / by-femaFlavorProfile
-    // endpoints 404 on a single tag (they only match the whole concatenated
-    // string). Since the full molecule list is already cached, filter it
-    // locally on an '@'-split token match instead — same matching the
-    // autocomplete uses, so a suggestion the user picked always finds rows.
+    
+    
+    
+    
+    
+    
     const MULTI_VALUE_FIELDS = {
       functional_group: 'functional_group',
       flavor_profile: 'flavor_profile',
@@ -1121,15 +1121,15 @@ async function paginateRows(rows, page = 0, size = PAGE_SIZE) {
 // garbage suggestions instead of a clean "primary alcohol" match.
 const MULTI_VALUE_MOLECULE_FIELDS = new Set(['functional_group', 'flavor_profile', 'fema_flavor_profile']);
 
-// The original site's own autocomplete doesn't rank "starts with" matches
-// first or sort results alphabetically either — asking it the same query
-// twice can surface a different subset of matches in a different order. We
-// can't reproduce that exactly, but forcing our own alphabetical/starts-with
-// sort was actively worse: for a broad query (e.g. "af") it deterministically
-// picked the same ~12 alphabetically-first hits every time and permanently
-// hid anything later in the alphabet (like "violet leaf aldehyde"). So this
-// keeps the natural dataset order instead and raises the cap generously,
-// which keeps the list generous the same way the original's is.
+
+
+
+
+
+
+
+
+
 const AUTOCOMPLETE_LIMIT = 50;
 
 async function autocompleteRows(domain, query, field) {
@@ -1172,10 +1172,10 @@ async function autocompleteRows(domain, query, field) {
     } else if (domain === 'sources') {
       rows = (await getAllEntitiesCached()).map((r) => ({ id: r.source || r.id, name: r.source || '' })).filter((r) => r.name);
     } else if (domain === 'molecules') {
-      // NOTE: the upstream FlavorDB API has no working `/molecules_autocomplete`
-      // endpoint (it 404s), which was bubbling up as a 500 here. Instead, reuse
-      // the cached full molecule list (already used for the `type` field and the
-      // main search page) and derive suggestions from it locally.
+      
+      
+      
+      
       const fieldToRowField = { common_name: 'name', type: 'type' };
 
       const rowField = fieldToRowField[field];
@@ -1195,7 +1195,7 @@ async function autocompleteRows(domain, query, field) {
       const key = normalizeText(name);
       if (!key.includes(q) || seen.has(key)) continue;
       seen.add(key);
-      out.push({ id: row.id ?? name, name });
+      out.push({ id: row.id ?? name, name, category: row.category });
       if (out.length >= AUTOCOMPLETE_LIMIT) break;
     }
     return out;
@@ -1260,7 +1260,7 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// Autocomplete endpoints
+
 app.get('/api/autocomplete/molecules', async (req, res) => {
   try {
     const { field = 'common_name', q = '' } = req.query;
@@ -1318,7 +1318,7 @@ app.get('/api/natural-sources/search', async (req, res) => {
   }
 });
 
-// Ranked molecules for an entity
+
 app.get('/api/molecules/:entityId', async (req, res) => {
   try {
     const { entityId } = req.params;
@@ -1328,7 +1328,7 @@ app.get('/api/molecules/:entityId', async (req, res) => {
       return res.status(503).json({ error: 'Server still initialising, retry in 1s' });
     }
 
-    // If all molecules already have df from the compact endpoint, skip N+1 lookups
+    
     const allHaveDf = molecules.every(m => m.df != null);
 
     let results;
@@ -1378,7 +1378,7 @@ app.get('/api/molecule-entities/:pubchemId', async (req, res) => {
   }
 });
 
-// Pairings for an entity (heavy — streams progress via SSE)
+
 app.get('/api/pairings/:entityId', async (req, res) => {
   const { entityId } = req.params;
   const { entityName = '' } = req.query;
@@ -1543,8 +1543,8 @@ app.get('/api/molecule-overview/:pubchemId', async (req, res) => {
   }
 });
 
-// Debug endpoint: see exactly what FlavorDB returns for a molecule's raw data
-// Hit /api/debug/7664 to inspect the raw JSON and fix field name mappings
+
+
 app.get('/api/debug/:pubchemId', async (req, res) => {
   try {
     const pubchemId = parseInt(req.params.pubchemId, 10);
@@ -1574,9 +1574,9 @@ app.get('/api/debug/:pubchemId', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`FlavorDB API server running on http://localhost:${PORT}`);
 
-  // Kick off the full entities/molecules fetch immediately instead of waiting
-  // for the first autocomplete request to trigger it — this is what caused
-  // the "Loading…" spinner to sit there for a long time on first use.
+  
+  
+  
   const startedAt = Date.now();
   Promise.allSettled([
     getAllEntitiesCached().then((rows) => console.log(`Warmed entities cache: ${rows.length} rows (${Date.now() - startedAt}ms)`)),

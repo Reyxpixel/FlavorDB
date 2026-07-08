@@ -218,18 +218,18 @@ function AutocompleteField({
 // `window.JSApplet.JSME` is actually available.
 //
 // This deliberately does NOT rely solely on the script's `load` event or on
-// JSME's own `jsmeOnLoad` convention: `jsmeOnLoad` is called by the *second*,
-// internally-fetched permutation file, not by jsme.nocache.js itself, and if
-// a `<script id="jsme-script-loader">` tag from an earlier mount is already
-// sitting in the DOM, its `load` event already fired once in the past and
-// will never fire again — so listening for it a second time hangs forever.
-// Polling `window.JSApplet.JSME` directly is the one signal that's correct
-// no matter how we got here.
-//
-// The in-flight/settled promise is cached per script URL (not just globally)
-// so switching the source (e.g. CDN → self-hosted, across app versions in
-// the same tab) doesn't accidentally reuse a stale result, and a *failed*
-// attempt is not cached forever — later remounts get to retry.
+
+
+
+
+
+
+
+
+
+
+
+
 function loadJsmeScript() {
   const src = `${process.env.PUBLIC_URL || ''}/jsme/jsme.nocache.js`;
   window.__JSME_LOADERS = window.__JSME_LOADERS || {};
@@ -256,7 +256,7 @@ function loadJsmeScript() {
       if (window.JSApplet?.JSME) {
         window.clearInterval(timer);
         resolve();
-      } else if (tries >= 400) { // ~20s — the compiled module can be 400KB-1.2MB
+      } else if (tries >= 400) { 
         window.clearInterval(timer);
         reject(new Error('JSME did not finish loading'));
       }
@@ -434,9 +434,9 @@ export default function SearchPage({
   onOpenPairings,
   onOpenMoleculeResults,
 }) {
-  const [activeTab, setActiveTab] = useState('molecules');
+  const [activeTab, setActiveTab] = useState('entities');
 
-  // Molecules tab
+  
   const [molForm, setMolForm] = useState(() => ({
     common_name: '',
     functional_group: '',
@@ -506,7 +506,15 @@ export default function SearchPage({
       const res = await fetch(apiPath(`/api/entities/search?${params.toString()}`));
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Search failed');
-      setEntityResults(data.entities || []);
+
+      const results = data.entities || [];
+      if (results.length === 1 && page === 0) {
+        onOpenMolecules(results[0]);
+        setEntityLoading(false);
+        return;
+      }
+
+      setEntityResults(results);
       setEntityTotal(data.totalElements || 0);
       setEntityTotalPages(data.totalPages || 1);
       setEntityPage(page);
@@ -563,20 +571,20 @@ export default function SearchPage({
   };
 
   const activeTabLabel = useMemo(() => {
-    if (activeTab === 'molecules') return 'Flavor Molecules';
-    if (activeTab === 'entities') return 'Entities/Ingredients';
-    if (activeTab === 'sources') return 'Natural Sources';
-    return 'Flavor Pairing';
+    if (activeTab === 'entities') return 'Ingredients';
+    if (activeTab === 'molecules') return 'Molecules';
+    if (activeTab === 'sources') return 'Sources';
+    return 'Pairing';
   }, [activeTab]);
 
   return (
     <div className="fdb-search-hub">
       <div className="fdb-tabs" role="tablist" aria-label="FlavorDB search tabs">
         {[
-          ['molecules', 'Flavor Molecules'],
-          ['entities', 'Entities/Ingredients'],
-          ['sources', 'Natural Sources'],
-          ['pairing', 'Flavor Pairing'],
+          ['entities', 'Ingredients'],
+          ['molecules', 'Molecules'],
+          ['sources', 'Sources'],
+          ['pairing', 'Pairing'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -596,8 +604,7 @@ export default function SearchPage({
           <div className="fdb-two-col">
             <div>
               <div className="fdb-search-banner">
-                <strong>Search based on physicochemical properties of Flavor Molecules</strong>
-                <span>Use one or more search parameters. You may leave any field empty.</span>
+                <span>Search based on physicochemical properties of Flavor Molecules</span>
               </div>
 
               <div className="fdb-form-grid">
@@ -652,19 +659,19 @@ export default function SearchPage({
                 </div>
                 <div>
                   <label className="fdb-field-label">Hydrogen bond donors</label>
-                  <select value={molForm.hbd} onChange={(e) => setMolForm((s) => ({ ...s, hbd: e.target.value }))}>
+                  <select className="fdb-select" value={molForm.hbd} onChange={(e) => setMolForm((s) => ({ ...s, hbd: e.target.value }))}>
                     {HBD_OPTIONS.map((opt) => <option key={opt.label} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="fdb-field-label">Hydrogen bond acceptors</label>
-                  <select value={molForm.hba} onChange={(e) => setMolForm((s) => ({ ...s, hba: e.target.value }))}>
+                  <select className="fdb-select" value={molForm.hba} onChange={(e) => setMolForm((s) => ({ ...s, hba: e.target.value }))}>
                     {HBA_OPTIONS.map((opt) => <option key={opt.label} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="fdb-field-label">Type of molecules</label>
-                  <select value={molForm.type} onChange={(e) => setMolForm((s) => ({ ...s, type: e.target.value }))}>
+                  <select className="fdb-select" value={molForm.type} onChange={(e) => setMolForm((s) => ({ ...s, type: e.target.value }))}>
                     {TYPE_OPTIONS.map((opt) => <option key={opt.label} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </div>
@@ -687,8 +694,7 @@ export default function SearchPage({
         {activeTab === 'entities' && (
           <div>
             <div className="fdb-search-banner">
-              <strong>Search based on Food Entities/Natural Ingredients</strong>
-              <span>Start typing; autocomplete will help you.</span>
+              <span>Search based on Food Entities or Natural Ingredients</span>
             </div>
             <div className="fdb-form-grid fdb-form-grid-entities">
               <AutocompleteField
@@ -697,7 +703,17 @@ export default function SearchPage({
                 onChange={setEntityQuery}
                 placeholder="Entity / Ingredient Name"
                 fetchUrl={entityAutocomplete('name')}
-                onSelect={(item) => setEntityQuery(item.name || '')}
+                onSelect={(item) => {
+                  const name = item.name || item.entity_alias_readable || item.entity_alias || '';
+                  setEntityQuery(name);
+                  if (item.id) {
+                    onOpenMolecules({
+                      id: item.id,
+                      name: name,
+                      category: item.category || ''
+                    });
+                  }
+                }}
               />
               <AutocompleteField
                 label="Category"
@@ -732,8 +748,7 @@ export default function SearchPage({
         {activeTab === 'sources' && (
           <div>
             <div className="fdb-search-banner">
-              <strong>Search based on “Natural Sources” of Food Entities/Ingredients</strong>
-              <span>Start typing; autocomplete will help you.</span>
+              <span>Search based on the Natural Sources of Food Entities or Ingredients</span>
             </div>
             <div className="fdb-form-grid fdb-form-grid-entities">
               <AutocompleteField
@@ -769,8 +784,7 @@ export default function SearchPage({
         {activeTab === 'pairing' && (
           <div>
             <div className="fdb-search-banner">
-              <strong>Search for Ingredients/Entities that share flavor molecules</strong>
-              <span>Helps you in finding ingredients with shared flavor profiles.</span>
+              <span>Search for Ingredients Entities that share flavor molecules and profiles</span>
             </div>
             <div className="fdb-form-grid fdb-form-grid-entities">
               <AutocompleteField
@@ -795,7 +809,7 @@ export default function SearchPage({
         )}
       </div>
 
-      <div className="fdb-active-tab-note">{activeTabLabel}</div>
+      <div className="fdb-active-tab-note">{ }</div>
     </div>
   );
 }

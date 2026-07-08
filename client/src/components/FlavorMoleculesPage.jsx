@@ -462,7 +462,7 @@ function StructureEditorPanel({ form, setForm }) {
           try {
             applet.readGenericMolecularInput(form.structure);
           } catch {
-            // ignore invalid/unsupported structure strings
+            
           }
         }
 

@@ -47,7 +47,7 @@ export default function PairingsPage({ entity, onBackToMolecules }) {
           es.close();
         }
       } catch {
-        // ignore parse errors
+        
       }
     };
 
@@ -151,7 +151,7 @@ export default function PairingsPage({ entity, onBackToMolecules }) {
         </p>
       )}
 
-      {/* Results */}
+      {}
       {pairRows.length > 0 && (
         <>
           <div

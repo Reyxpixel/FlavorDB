@@ -4,8 +4,11 @@ import MoleculesPage from './components/MoleculesPage';
 import PairingsPage from './components/PairingsPage';
 import MoleculeDetailPage from './components/MoleculeDetailPage';
 import MoleculeResultsPage from './components/MoleculeResultsPage';
+import FAQPage from './components/FAQPage';
+import ContactPage from './components/ContactPage';
+import HowToUsePage from './components/HowToUsePage';
 
-// view: 'browse' | 'moleculeResults' | 'molecules' | 'pairings' | 'moleculeDetail'
+
 
 const MOL_FIELDS = [
   'common_name', 'functional_group', 'flavor_profile', 'fema_flavor_profile',
@@ -19,6 +22,16 @@ const EMPTY_MOL_FORM = MOL_FIELDS.reduce((acc, k) => ({ ...acc, [k]: '' }), {});
 // navigation and browser navigation always agree.
 function readStateFromUrl() {
   const params = new URLSearchParams(window.location.search);
+
+  if (params.get('mview') === 'faq') {
+    return { view: 'faq', entity: null, selectedMolecule: null, molQuery: null };
+  }
+  if (params.get('mview') === 'contact') {
+    return { view: 'contact', entity: null, selectedMolecule: null, molQuery: null };
+  }
+  if (params.get('mview') === 'how_to_use') {
+    return { view: 'how_to_use', entity: null, selectedMolecule: null, molQuery: null };
+  }
 
   if (params.get('mview') === 'molecules') {
     const molQuery = {};
@@ -70,8 +83,8 @@ function readStateFromUrl() {
 
 export default function App() {
   const [state, setState] = useState(() => readStateFromUrl());
-  // Seeds the Flavor Molecules search form so returning to the search page
-  // (e.g. via Back) keeps whatever the user last searched for.
+  
+  
   const [lastMolForm, setLastMolForm] = useState(() => {
     const s = readStateFromUrl();
     return s.molQuery ? { ...EMPTY_MOL_FORM, ...s.molQuery } : EMPTY_MOL_FORM;
@@ -90,8 +103,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', applyUrl);
   }, [applyUrl]);
 
-  // Push a new history entry then re-derive state from it. `search` is a full
-  // query string beginning with '?', or '' for the bare home URL.
+  
+  
   const navigate = useCallback((search) => {
     const url = search ? `${window.location.pathname}${search}` : window.location.pathname;
     window.history.pushState({}, '', url);
@@ -157,55 +170,70 @@ export default function App() {
   }
 
   const headerLinks = [
-    { label: 'FlavorDB Pro Search', internal: true },
-    { label: 'How To Use', href: 'https://cosylab.iiitd.edu.in/flavordb/how_to_use' },
-    { label: 'Receptors', href: 'https://cosylab.iiitd.edu.in/flavordb/receptors' },
-    { label: 'FAQs', href: 'https://cosylab.iiitd.edu.in/flavordb/faq' },
-    { label: 'Contact Us', href: 'https://cosylab.iiitd.edu.in/flavordb/contact' },
-    { label: 'CoSyLab', href: 'https://cosylab.iiitd.edu.in/' },
+    { label: 'Search Pro', action: 'home' },
+    { label: 'How To Use', action: 'how_to_use' },
+    { label: 'FAQs', action: 'faq' },
+    { label: 'Contact Us', action: 'contact' },
+    { label: 'CoSyLab', href: 'http://cosylab.iiitd.edu.in/', target: '_blank' },
+    { label: 'Foodoscope', href: 'https://www.foodoscope.com/', target: '_blank' }
   ];
 
   return (
     <div className="fdb-app-shell">
       <header className="fdb-site-header">
         <div className="fdb-site-header-inner">
-          <button
-            type="button"
-            className="fdb-site-logo"
+          <div
             onClick={goHome}
-            aria-label="Back to home"
+            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', outline: 'none' }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter') goHome(); }}
             title="Home"
           >
-            <span aria-hidden="true">🌶</span>
-          </button>
-
-          <div className="fdb-site-branding">
-            <h1>FlavorDB Pro</h1>
-            <p>A resource to explore flavor molecules</p>
+            <div className="fdb-site-logo" style={{ pointerEvents: 'none' }}>
+              <img src="/logo.png" alt="FlavorDB Logo" />
+            </div>
+            <div className="fdb-site-branding" style={{ pointerEvents: 'none' }}>
+              <h1>FlavorDB Pro</h1>
+              <p>Your ultimate destination for flavor profiles</p>
+            </div>
           </div>
 
           <nav className="fdb-site-nav" aria-label="Primary">
-            {headerLinks.map(link => (
-              link.internal ? (
+            {headerLinks.map(link => {
+              const isActive = (link.action === 'home' && !['faq', 'contact'].includes(view)) || (link.action === view);
+              return link.action ? (
                 <button
                   key={link.label}
                   type="button"
-                  className="fdb-site-nav-link"
-                  onClick={goHome}
+                  className={`fdb-site-nav-link ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    if (link.action === 'home') goHome();
+                    else navigate(`?mview=${link.action}`);
+                  }}
                 >
                   {link.label}
+                  {link.subText && <span style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', fontSize: '0.75em', color: '#999', fontWeight: 'normal', marginTop: '0.1rem' }}>{link.subText}</span>}
                 </button>
               ) : (
-                <a key={link.label} className="fdb-site-nav-link" href={link.href}>
+                <a key={link.label} className="fdb-site-nav-link" href={link.href} target={link.target} rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}>
                   {link.label}
+                  {link.subText && <span style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', fontSize: '0.75em', color: '#999', fontWeight: 'normal', marginTop: '0.1rem' }}>{link.subText}</span>}
                 </a>
-              )
-            ))}
+              );
+            })}
           </nav>
         </div>
       </header>
 
-      <div className="fdb-content">
+      {view === 'browse' && (
+        <div style={{ textAlign: 'center', margin: '2rem auto 2rem auto', maxWidth: '1140px', padding: '0 1rem' }}>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 600, color: '#333', margin: '0 0 0.5rem 0' }}>FlavorDB Pro Search</h2>
+          <p style={{ fontSize: '1.2rem', color: '#666', margin: 0 }}>A resource for exploring molecular profiles of ingredient entities and their rarity analysis</p>
+        </div>
+      )}
+
+      <div className="fdb-content" style={{ flex: '1 0 auto' }}>
         {view === 'browse' && (
           <SearchPage
             initialMolForm={lastMolForm}
@@ -247,15 +275,24 @@ export default function App() {
             onOpenEntity={openMolecules}
           />
         )}
+
+        {view === 'faq' && <FAQPage />}
+        {view === 'contact' && <ContactPage />}
+        {view === 'how_to_use' && <HowToUsePage />}
       </div>
 
       <footer className="fdb-site-footer">
         <div className="fdb-site-footer-inner">
-          <div>Copyright © 2026 · All rights reserved.</div>
-          <div className="fdb-site-footer-links">
-            <a href="https://www.foodoscope.com/" target="_blank" rel="noreferrer">Foodoscope Technologies Pvt. Ltd.</a>
-            <span>|</span>
-            <a href="https://faculty.iiitd.ac.in/~bagler/" target="_blank" rel="noreferrer">Dr. Ganesh Bagler</a>
+          <div className="fdb-site-footer-left">
+            <div className="fdb-site-footer-links">
+              <a href="https://www.foodoscope.com/" target="_blank" rel="noreferrer">Foodoscope Technologies Pvt. Ltd.</a>
+              <span>|</span>
+              <a href="https://faculty.iiitd.ac.in/~bagler/" target="_blank" rel="noreferrer">Dr. Ganesh Bagler</a>
+            </div>
+            <div>Copyright © 2026 · All rights reserved.</div>
+          </div>
+          <div className="fdb-site-footer-right">
+            <img src="/iiitd_icon.png" alt="IIIT-Delhi Logo" />
           </div>
         </div>
       </footer>

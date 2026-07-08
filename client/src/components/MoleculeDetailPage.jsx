@@ -221,7 +221,7 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
   }, [molecule?.pubchem_id]);
 
   const pubchemImage = useMemo(
-    () => `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${molecule?.pubchem_id}/PNG`,
+    () => `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/${molecule?.pubchem_id}/PNG?image_size=large`,
     [molecule?.pubchem_id]
   );
 
@@ -284,7 +284,17 @@ export default function MoleculeDetailPage({ entity, molecule, onBack, onOpenEnt
               value={<RarityChip rarity={molecule.rarity || { label: rarity, cls: `rarity-${rarity}` }} />}
             />
             <PropertyRow
-              label="Flavor Importance"
+              label={
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Flavor Importance
+                  <span className="fdb-infotip">
+                    <span className="fdb-infotip-mark">?</span>
+                    <span className="fdb-infotip-bubble" style={{ fontWeight: 'normal', textTransform: 'none' }}>
+                      The Relevance Score (or Flavor Importance) of a molecule captures its uniqueness. It is calculated as the inverse of its document frequency: 1/df(m), where df(m) is the total number of ingredients that contain this molecule.
+                    </span>
+                  </span>
+                </div>
+              }
               value={<span className="mono">{Number(molecule.importance || 0).toFixed(8)}</span>}
             />
             <PropertyRow label="Ingredient" value={<CatTag category={entity.category} />} />

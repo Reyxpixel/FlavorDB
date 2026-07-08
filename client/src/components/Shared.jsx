@@ -58,8 +58,8 @@ export function TableWrap({ title, meta, children }) {
   );
 }
 
-// Turns an '@'-delimited multi-value field (e.g. "odorless@bitter") into a
-// clean, human-readable "odorless, bitter". Returns '—' when empty.
+
+
 export function formatTags(value) {
   if (!value) return '—';
   const parts = String(value)
@@ -69,7 +69,7 @@ export function formatTags(value) {
   return parts.length ? parts.join(', ') : '—';
 }
 
-// A small "?" badge that reveals an explanatory message on hover/focus.
+
 export function InfoTip({ text, label = 'More information' }) {
   return (
     <span className="fdb-infotip" tabIndex={0} role="img" aria-label={label}>

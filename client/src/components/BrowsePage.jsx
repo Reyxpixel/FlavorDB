@@ -134,7 +134,7 @@ export default function BrowsePage({ onOpenMolecules, onOpenPairings }) {
 
   return (
     <div>
-      {/* Search box */}
+      {}
       <div className="fdb-search-wrap">
         <div className="fdb-search-label">Entity / Ingredient Name</div>
 
@@ -212,7 +212,7 @@ export default function BrowsePage({ onOpenMolecules, onOpenPairings }) {
         </div>
       )}
 
-      {/* Results */}
+      {}
       {entities.length > 0 && (
         <>
           <div className="fdb-result-info">

@@ -1,9 +1,9 @@
 import React from 'react';
 import { CatTag, TableWrap } from './Shared';
 
-// Fields like flavor_profile / fema_flavor_profile store several values per
-// molecule joined with '@' (e.g. "odorless@bitter"). Render them as a normal
-// comma-separated list instead of leaking the raw delimiter to the user.
+
+
+
 export function formatMultiValue(raw) {
   const text = String(raw || '').trim();
   if (!text) return '—';
