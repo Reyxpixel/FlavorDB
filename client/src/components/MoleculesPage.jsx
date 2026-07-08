@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiPath } from '../apiPath';
-import { Spinner, CatTag, RarityChip, TableWrap, ImpBar } from './Shared';
+import { Spinner, CatTag, RarityChip, TableWrap, ImpBar, InfoTip } from './Shared';
 
 const ROWS_PER_PAGE = 10;
 
@@ -100,7 +100,6 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
         <h2>{entity.name}</h2>
         <div className="meta">
           Category: <CatTag category={entity.category} />
-          &nbsp;·&nbsp; Entity ID: {entity.id}
         </div>
       </div>
 
@@ -120,11 +119,23 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
             </div>
             <div className="fdb-stat-box">
               <div className="fdb-stat-val">{rareCount}</div>
-              <div className="fdb-stat-label">Rare (df≤5)</div>
+              <div className="fdb-stat-label">
+                Rare
+                <InfoTip
+                  label="What does Rare mean?"
+                  text="A molecule is counted as Rare when it appears in 5 or fewer entities/ingredients, i.e. df(m) ≤ 5 — where df(m), the document frequency, is the number of entities/ingredients that contain molecule m."
+                />
+              </div>
             </div>
             <div className="fdb-stat-box">
               <div className="fdb-stat-val">{totalScore.toFixed(2)}</div>
-              <div className="fdb-stat-label">Total rarity score</div>
+              <div className="fdb-stat-label">
+                Total rarity score
+                <InfoTip
+                  label="What is the Total Rarity Score?"
+                  text="Total Rarity Score captures the extent to which this entity/ingredient is built from molecules that are rare across all entities/ingredients. It is the sum of each molecule's rarity weight over all molecules in this entity/ingredient: Score = Σ 1/df(m), where df(m) is the number of entities/ingredients that contain molecule m."
+                />
+              </div>
             </div>
           </div>
 

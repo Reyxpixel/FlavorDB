@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { apiPath } from '../apiPath';
 import { Spinner, CatTag, RarityChip, PairBar, Expander } from './Shared';
 import { catColor } from '../categories';
 
@@ -24,7 +23,7 @@ export default function PairingsPage({ entity, onBackToMolecules }) {
     setStatus('Connecting…');
     setProgress(null);
 
-    const url = apiPath(`/api/pairings/${entity.id}?entityName=${encodeURIComponent(entity.name)}`);
+    const url = `/api/pairings/${entity.id}?entityName=${encodeURIComponent(entity.name)}`;
     const es = new EventSource(url);
     esRef.current = es;
 

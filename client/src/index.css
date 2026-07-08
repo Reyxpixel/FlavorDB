@@ -694,367 +694,373 @@ button.ent-link { background: none; border: none; padding: 0; font: inherit; out
   color: #777;
 }
 
-
-
-/* ── Search tabs / layout updates ── */
-.fdb-tabs-card {
+/* ── FlavorDB search hub ── */
+.fdb-search-hub {
   background: #fff;
   border: 1px solid #ddd;
-  border-radius: 6px;
-  overflow: hidden;
+  border-radius: 4px;
+  /* Was overflow:hidden, which clipped the absolutely-positioned autocomplete
+     dropdowns inside the tabs. Keep it visible so suggestions can extend past
+     the hub; the tab strip below rounds its own top corners to compensate. */
+  overflow: visible;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .fdb-tabs {
   display: flex;
-  flex-wrap: wrap;
   gap: 0;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #d9d9d9;
   background: #fafafa;
+  overflow-x: auto;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
 }
 
 .fdb-tab {
   appearance: none;
-  background: transparent;
   border: 0;
-  border-right: 1px solid #ddd;
-  padding: 0.9rem 1.1rem;
+  background: transparent;
+  padding: 0.85rem 1rem;
   font: inherit;
-  font-weight: 600;
   color: #1565c0;
+  font-weight: 600;
   cursor: pointer;
-}
-
-.fdb-tab:last-child {
-  border-right: 0;
-}
-
-.fdb-tab:hover {
-  background: #f3f7fb;
-}
-
-.fdb-tab.is-active {
-  background: #fff;
-  color: #222;
-  box-shadow: inset 0 -3px 0 #1565c0;
-}
-
-.fdb-tab-panel {
-  padding: 1rem;
-}
-
-.fdb-subnote {
-  margin-top: 0.4rem;
-  color: #5f6b7a;
-  font-size: 0.9rem;
-}
-
-.molecule-advanced-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem 1rem;
-  margin-top: 1rem;
-}
-
-.molecule-advanced-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.molecule-advanced-grid label span {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #444;
-}
-
-.molecule-advanced-grid input,
-.molecule-advanced-grid select {
-  width: 100%;
-  padding: 0.48rem 0.7rem;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  font: inherit;
-  font-size: 0.92rem;
-}
-
-.molecule-advanced-wide {
-  grid-column: 1 / -1;
-}
-
-.fdb-search-row--end {
-  justify-content: flex-end;
-  margin-top: 1rem;
-}
-
-.fdb-molecule-layout {
-  display: grid;
-  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-  margin-top: 1rem;
-}
-
-.fdb-molecule-editor,
-.fdb-molecule-results {
-  min-width: 0;
-}
-
-.fdb-panel-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #1565c0;
-  margin-bottom: 0.6rem;
-}
-
-.fdb-panel-caption {
-  margin-top: 0.45rem;
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-
-.fdb-jsme-frame {
-  width: 100%;
-  height: 560px;
-  border: 1px solid #d8d8d8;
-  border-radius: 6px;
-  background: #fff;
-}
-
-@media (max-width: 960px) {
-  .fdb-molecule-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .molecule-advanced-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-/* ── Flavor molecule explorer / tabs ── */
-.fdb-flavor-explorer {
-  width: 100%;
-}
-
-.fdb-search-tabs {
-  display: flex;
-  gap: 0.35rem;
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 1rem;
-  overflow-x: auto;
-  padding-bottom: 0;
-}
-
-.fdb-search-tab {
-  border: 1px solid #ddd;
-  border-bottom: none;
-  background: #fff;
-  color: #1565c0;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  padding: 0.7rem 1rem;
-  font: inherit;
-  cursor: default;
+  border-right: 1px solid #ececec;
   white-space: nowrap;
 }
 
-.fdb-search-tab.active {
-  color: #333;
-  font-weight: 600;
-  margin-bottom: -1px;
+.fdb-tab.active {
   background: #fff;
+  color: #333;
+  box-shadow: inset 0 2px 0 #1565c0;
 }
 
-.fdb-search-tab:disabled {
-  opacity: 1;
+.fdb-tab-content {
+  padding: 1rem;
 }
 
-.fdb-search-panel {
-  width: 100%;
+.fdb-search-banner {
+  background: linear-gradient(#e7f4fd, #cfe7f7);
+  border: 1px solid #b7d8ef;
+  color: #114f7f;
+  padding: 0.9rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.fdb-search-title {
-  background: #d9edf7;
-  color: #1d5f84;
-  font-weight: 700;
-  padding: 0.85rem 1rem 0.25rem;
-  border: 1px solid #b3d7ea;
-  border-bottom: none;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  font-size: 1rem;
-}
-
-.fdb-search-subtitle {
-  background: #d9edf7;
-  color: #1d5f84;
-  padding: 0 1rem 0.9rem;
-  border: 1px solid #b3d7ea;
-  border-top: none;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  font-size: 0.9rem;
-}
-
-.fdb-search-grid {
-  margin-top: 1.25rem;
+.fdb-two-col {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.9fr);
+  gap: 1rem;
   align-items: start;
 }
 
-@media (max-width: 1100px) {
-  .fdb-search-grid {
+@media (max-width: 980px) {
+  .fdb-two-col {
     grid-template-columns: 1fr;
   }
 }
 
-.fdb-search-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.fdb-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
 }
 
-.fdb-search-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+.fdb-form-grid-entities {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .fdb-form-grid,
+  .fdb-form-grid-entities {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fdb-autocomplete-field {
+  position: relative;
+}
+
+.fdb-field-label {
+  display: block;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 0.45rem;
+  font-size: 0.88rem;
 }
 
 .fdb-mini-label {
-  font-size: 0.8rem;
+  display: block;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: #444;
-  margin-bottom: 0.25rem;
-}
-
-.fdb-range-group,
-.fdb-structure-panel,
-.fdb-search-actions {
-  margin-top: 0.15rem;
-}
-
-.fdb-range-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.fdb-range-row-compact {
-  grid-template-columns: 1fr 1fr;
-}
-
-.fdb-search-form select,
-.fdb-search-form textarea,
-.fdb-search-form input {
-  width: 100%;
-  border: 1px solid #cfcfcf;
-  border-radius: 3px;
-  padding: 0.5rem 0.75rem;
-  font: inherit;
-  background: #fff;
-}
-
-.fdb-search-form select:focus,
-.fdb-search-form textarea:focus,
-.fdb-search-form input:focus {
-  outline: none;
-  border-color: #1565c0;
-  box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.12);
-}
-
-.fdb-search-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.fdb-structure-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.fdb-jsme-box {
-  background: #f8f8f8;
-  border: 1px solid #d8d8d8;
-  border-radius: 4px;
-  overflow: hidden;
-  min-height: 480px;
-  display: flex;
-  flex-direction: column;
-}
-
-.fdb-jsme-toolbar {
-  height: 48px;
-  background: #bfbfbf;
-  border-bottom: 1px solid #a7a7a7;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0 0.55rem;
-  font-size: 0.72rem;
+  margin-bottom: 0.35rem;
   color: #333;
 }
 
-.fdb-jsme-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ffeb3b;
-  border: 1px solid #999;
-  flex-shrink: 0;
+.fdb-autocomplete-field input,
+.fdb-autocomplete-field select,
+.fdb-range-grid input,
+.fdb-range-grid select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+  min-height: 38px;
 }
 
-.fdb-jsme-toolbar-title {
-  margin-left: auto;
+.fdb-autocomplete-field input:focus,
+.fdb-autocomplete-field select:focus,
+.fdb-range-grid input:focus,
+.fdb-range-grid select:focus {
+  outline: none;
+  border-color: #1565c0;
+  box-shadow: 0 0 0 2px rgba(21,101,192,0.12);
+}
+
+.fdb-autocomplete-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 3px);
+  z-index: 20;
+  background: #fff;
+  border: 1px solid #cfcfcf;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  max-height: 230px;
+  overflow: auto;
+}
+
+.fdb-autocomplete-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-bottom: 1px solid #f1f1f1;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fdb-autocomplete-item:hover {
+  background: #eef6ff;
+}
+
+.fdb-autocomplete-empty {
+  padding: 0.65rem 0.7rem;
+  color: #777;
+  font-size: 0.9rem;
+}
+
+.fdb-range-row {
+  grid-column: 1 / -1;
+}
+
+.fdb-range-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.fdb-search-btn {
+  margin-top: 1rem;
+  min-width: 160px;
+}
+
+.fdb-error-box,
+.fdb-empty-box,
+.fdb-results-summary,
+.fdb-active-tab-note {
+  margin-top: 1rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.fdb-error-box {
+  background: #ffebee;
+  border: 1px solid #ef9a9a;
+  color: #b71c1c;
+}
+
+.fdb-empty-box {
+  background: #f6f6f6;
+  border: 1px solid #ddd;
+  color: #555;
+}
+
+.fdb-results-summary,
+.fdb-active-tab-note {
+  background: #eef6ff;
+  border: 1px solid #cfe2ff;
+  color: #1d4f8a;
+}
+
+.fdb-active-tab-note {
+  margin-top: 0;
+  border-top: 1px solid #ddd;
+  border-radius: 0;
+  background: #fafafa;
+  color: #666;
+}
+
+.fdb-jsme-card {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f8f8f8;
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+}
+
+.fdb-jsme-head,
+.fdb-jsme-footer {
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.fdb-jsme-head {
+  background: #efefef;
+  border-bottom: 1px solid #ddd;
   font-weight: 700;
 }
 
-.fdb-jsme-react {
-  flex: 1;
-  width: 100%;
-  min-height: 330px;
+.fdb-jsme-clear {
+  border: 1px solid #bbb;
   background: #fff;
-  overflow: hidden;
+  border-radius: 3px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  font: inherit;
 }
 
-.fdb-jsme-react > div {
-  width: 100%;
-  height: 100%;
-}
-
-.fdb-jsme-status {
-  padding: 0.55rem 0.75rem;
-  font-size: 0.8rem;
-  color: #666;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f8f8;
-}
-
-.fdb-jsme-caption {
-  padding: 0.55rem 0.75rem;
-  font-size: 0.8rem;
-  color: #666;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f8f8;
-}
-
-.fdb-results-page {
-  width: 100%;
-}
-
-.fdb-molecule-results-table td,
-.fdb-molecule-results-table th {
-  vertical-align: top;
-}
-
-.fdb-not-found {
+.fdb-jsme-host {
+  flex: 1 1 auto;
+  min-height: 470px;
   background: #fff;
-  border: 1px solid #ddd;
+}
+
+/* The JSME widget is GWT-compiled code that assumes the browser's classic
+   default box-model/spacing (content-box sizing, default UA margins and
+   paddings on table/div/button elements) for anything it doesn't style
+   itself. Our page-wide reset at the top of this file (`*, *::before,
+   *::after { box-sizing: border-box; margin: 0; padding: 0; }`) strips that
+   out — which doesn't throw any error, it just silently collapses the
+   widget's internal layout, leaving the panel blank. Restoring browser
+   defaults inside this one container fixes that without touching the reset
+   anywhere else on the page. */
+.fdb-jsme-host,
+.fdb-jsme-host *,
+.fdb-jsme-host *::before,
+.fdb-jsme-host *::after {
+  box-sizing: content-box;
+  margin: revert;
+  padding: revert;
+}
+
+.fdb-jsme-footer {
+  border-top: 1px solid #ddd;
+  background: #f7f7f7;
+  color: #666;
+  flex-wrap: wrap;
+}
+
+.fdb-inline-panel {
+  margin-top: 1rem;
+}
+
+.snote { color: #666; font-size: 0.82rem; }
+
+/* ── Info tooltip (the "?" badges next to stat labels) ── */
+.fdb-infotip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.3rem;
+  cursor: help;
+  vertical-align: middle;
+}
+.fdb-infotip-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #b9c2cc;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+.fdb-infotip:hover .fdb-infotip-mark,
+.fdb-infotip:focus .fdb-infotip-mark {
+  background: #1565c0;
+}
+.fdb-infotip-bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  max-width: 78vw;
+  background: #263238;
+  color: #fff;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.74rem;
+  font-weight: 400;
+  line-height: 1.45;
+  padding: 0.6rem 0.7rem;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 50;
+  pointer-events: none;
+}
+.fdb-infotip-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #263238;
+}
+.fdb-infotip:hover .fdb-infotip-bubble,
+.fdb-infotip:focus .fdb-infotip-bubble,
+.fdb-infotip:focus-within .fdb-infotip-bubble {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ── "More info." button in molecule search results ── */
+.fdb-moreinfo-btn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  background: #29b6d8;
+  border: 0;
+  color: #fff;
   border-radius: 4px;
-  padding: 1.1rem 1.2rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fdb-moreinfo-btn:hover {
+  background: #1e9fbd;
 }
