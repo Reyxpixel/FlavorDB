@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { Spinner, CatTag, RarityChip, PairBar, Expander } from './Shared';
+import { Spinner, CatTag, RarityChip, PairBar, Expander, InfoTip } from './Shared';
 import { catColor } from '../categories';
 
 const ROWS_PER_PAGE = 10;
@@ -180,7 +180,13 @@ export default function PairingsPage({ entity, onBackToMolecules }) {
                   <th>Entity Name</th>
                   <th>Category</th>
                   <th style={{ textAlign: 'center' }}>Shared Molecules</th>
-                  <th className="right">Pairing Score</th>
+                  <th className="right">
+                    Pairing Score
+                    <InfoTip
+                      label="What is the Pairing Score?"
+                      text="Pairing Score adds up the rarity of all molecules shared between two ingredients. Molecules found in fewer ingredients contribute more to the score."
+                    />
+                  </th>
                 </tr>
               </thead>
             </table>

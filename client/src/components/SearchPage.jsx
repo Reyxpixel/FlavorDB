@@ -289,6 +289,15 @@ function JsmeEditor({ onSmilesChange }) {
     onChangeRef.current = onSmilesChange;
   }, [onSmilesChange]);
 
+  // The editor always mounts with a blank canvas (nothing carries over
+  // visually), but the parent's molForm.smiles can still hold a value from
+  // an earlier visit to this tab. Sync it back to blank so a stale drawing
+  // can't get submitted invisibly — what's on screen and what gets searched
+  // now always match.
+  useEffect(() => {
+    onChangeRef.current?.('');
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
