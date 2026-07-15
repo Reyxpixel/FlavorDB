@@ -1,12 +1,15 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const BASE_URL = process.env.FLAVORDB_BASE_URL || 'http://192.168.1.92:9208/flavordb';
 const PORT = process.env.PORT || 5000;
 const PAGE_SIZE = 24;
 const MAX_CONCURRENT = 16;
+const MOLECULES_CACHE_DIR = path.join(__dirname, '.cache');
 
 const cache = {
   allEntitiesPromise: null,
@@ -71,25 +74,42 @@ const ALL_CATEGORIES = [
   'vegetableroot', 'vegetablestem', 'vegetabletuber',
 ];
 
-async function fdbGet(path, params = {}) {
+function isTransientNetworkError(err) {
+  // A response means the upstream host answered (even with an error status) -
+  // only retry when the connection itself failed, since that's what the
+  // 192.168.1.92 FlavorDB host does under concurrent load.
+  if (err.response) return false;
+  const code = err.code || '';
+  return (
+    ['ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'EPIPE'].includes(code) ||
+    /socket hang up/i.test(err.message || '')
+  );
+}
+
+async function fdbGet(path, params = {}, retries = 3) {
   const url = `${BASE_URL}${path}`;
-  try {
-    const res = await axios.get(url, { params, timeout: 30000 });
-    return res.data;
-  } catch (err) {
-    
-    
-    
-    const status = err.response?.status;
-    const body = err.response?.data;
-    console.error(
-      'FDB GET ERROR:', path,
-      'params:', JSON.stringify(params),
-      'status:', status,
-      'body:', typeof body === 'object' ? JSON.stringify(body) : body,
-      err.message
-    );
-    throw err;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await axios.get(url, { params, timeout: 30000 });
+      return res.data;
+    } catch (err) {
+      const transient = isTransientNetworkError(err);
+      if (transient && attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+        continue;
+      }
+
+      const status = err.response?.status;
+      const body = err.response?.data;
+      console.error(
+        'FDB GET ERROR:', path,
+        'params:', JSON.stringify(params),
+        'status:', status,
+        'body:', typeof body === 'object' ? JSON.stringify(body) : body,
+        err.message
+      );
+      throw err;
+    }
   }
 }
 
@@ -146,6 +166,7 @@ function parseMoleculeRows(payload) {
       functional_group: item.functional_group || item.functional_groups || item.functionalGroup || '',
       flavor_profile: item.flavor_profile || item.flavorProfile || '',
       fema_flavor_profile: item.fema_flavor_profile || item.femaFlavorProfile || '',
+      fooddb_flavor_profile: item.fooddb_flavor_profile || item.fooddbFlavorProfile || '',
       type: item.type || item.molecule_type || item.moleculeType || '',
       ...(df != null ? { df: parseInt(df, 10) || 1 } : {}),
     });
@@ -198,6 +219,7 @@ function scoreFromDf(df) {
 }
 
 function rarityLabel(df) {
+  if (df == null) return { label: 'unknown', cls: 'rarity-unknown' };
   if (df === 1) return { label: 'unique', cls: 'rarity-unique' };
   if (df <= 5) return { label: 'rare', cls: 'rarity-rare' };
   if (df <= 50) return { label: 'common', cls: 'rarity-common' };
@@ -460,6 +482,67 @@ function extractFlatProperties(payload) {
 }
 
 
+function parseEmbeddedTable(html) {
+  const tableMatch = /<table[^>]*>([\s\S]*?)<\/table>/i.exec(html);
+  if (!tableMatch) return null;
+
+  const rows = [];
+  const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let trMatch;
+  while ((trMatch = trRegex.exec(tableMatch[1]))) {
+    const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+    const cells = [];
+    let cellMatch;
+    while ((cellMatch = cellRegex.exec(trMatch[1]))) {
+      cells.push(
+        String(cellMatch[1] || '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+      );
+    }
+    if (cells.length) rows.push(cells);
+  }
+  if (!rows.length) return null;
+
+  const [headers, ...bodyRows] = rows;
+  return { type: 'table', headers, rows: bodyRows };
+}
+
+// flavordb2 renders flavor/functional-group terms as links to its own search
+// page, e.g. <a href="/flavordb2/molecules?flavor_profile=rubber">rubber</a>.
+// Map that query param name to the search field our own molecule search uses,
+// so the frontend can re-run an equivalent in-app search on click.
+const MOLECULE_SEARCH_LINK_FIELDS = {
+  flavor_profile: 'flavor_profile',
+  fooddb_flavor: 'fooddb_flavor_profile',
+  fema_flavor: 'fema_flavor_profile',
+  functional_group: 'functional_group',
+};
+
+function extractMoleculeSearchLinks(html) {
+  const anchorRegex = /<a\s+href=["']\/flavordb2\/molecules\?([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const items = [];
+  let match;
+  while ((match = anchorRegex.exec(html))) {
+    const query = new URLSearchParams(match[1].replace(/&amp;/g, '&'));
+    const text = String(match[2] || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    for (const [qKey, qVal] of query.entries()) {
+      const field = MOLECULE_SEARCH_LINK_FIELDS[qKey];
+      if (field) {
+        items.push({ text: text || qVal, field, value: qVal });
+        break;
+      }
+    }
+  }
+  return items;
+}
+
 function parseMoleculeDetailsHtml(html) {
   if (typeof html !== 'string') return {};
 
@@ -471,12 +554,31 @@ function parseMoleculeDetailsHtml(html) {
       .replace(/:\s*$/,'')
       .replace(/\s+/g, ' ')
       .trim();
-    const rawValue = String(value || '')
+    if (!rawLabel) return;
+
+    const rawValueHtml = String(value || '');
+    if (/<table/i.test(rawValueHtml)) {
+      const table = parseEmbeddedTable(rawValueHtml);
+      if (table) {
+        flat[rawLabel] = table;
+        return;
+      }
+    }
+
+    if (/\/flavordb2\/molecules\?/i.test(rawValueHtml)) {
+      const items = extractMoleculeSearchLinks(rawValueHtml);
+      if (items.length) {
+        flat[rawLabel] = { type: 'links', items };
+        return;
+      }
+    }
+
+    const rawValue = rawValueHtml
       .replace(/<[^>]+>/g, ' ')
       .replace(/&nbsp;/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    if (rawLabel) flat[rawLabel] = rawValue || '—';
+    flat[rawLabel] = rawValue || '—';
   };
 
   // Primary parser: <li class="list-group-item"><strong>Label:</strong> Value</li>
@@ -622,6 +724,15 @@ function buildSectionsFromMerged(pubProps, flat) {
     return '—';
   };
 
+  const rawFlat = (key) => {
+    if (flat[key] !== undefined && flat[key] !== null && flat[key] !== '') return flat[key];
+    const kn = normalizeKey(key);
+    for (const [k, v] of Object.entries(flat || {})) {
+      if (normalizeKey(k) === kn && v !== undefined && v !== null && v !== '') return v;
+    }
+    return null;
+  };
+
   const formatValue = (val) => {
     if (!val || val === '—') return val;
     return val.replace(/-?\d+\.\d+/g, (match) => {
@@ -681,6 +792,86 @@ function buildSectionsFromMerged(pubProps, flat) {
     { label: 'ADMET PSA 2D',                                 value: pick(fromFlat('ADMET PSA 2D', 'admet_psa_2d', 'psa_2d')) },
   ].map(r => ({ ...r, value: formatValue(r.value || '—') }));
 
+  const sectionFromLabels = (labels) => labels.map((label) => ({ label, value: pick(fromFlat(label)) }));
+
+  const nomenclature = sectionFromLabels([
+    'Common name', 'IUPAC name', 'CAS numbers', 'SMILES', 'InChI',
+    'FlavorDB/FEMA name', 'Synonyms', 'FL number', 'NAS number',
+    'CoE number', 'EINECS number', 'JECFA number',
+  ]);
+
+  // Flavor profile / FooDB flavor profile / FEMA flavor profile / Functional
+  // groups come through as { type: 'links', items } (see extractMoleculeSearchLinks)
+  // when the source HTML had search links - pass those through as-is instead
+  // of flattening them to a comma-joined string.
+  const passthroughOrText = (...labels) => {
+    for (const label of labels) {
+      const raw = rawFlat(label);
+      if (raw && typeof raw === 'object' && (raw.type === 'links' || raw.type === 'table')) return raw;
+    }
+    return pick(fromFlat(...labels));
+  };
+
+  // The header "Molecular & Flavor Profile" card on the molecule page mirrors
+  // flavordb2's identity fields (IUPAC name/SMILES/CAS/FEMA number/Taste come
+  // from the plain top-level table on the source page, picked up by the
+  // generic <tr> fallback parser above rather than a <li> panel).
+  const molecularFlavorProfile = [
+    { label: 'IUPAC name', value: pick(fromFlat('IUPAC name')) },
+    { label: 'SMILES', value: pick(fromFlat('SMILES')) },
+    { label: 'CAS', value: pick(fromFlat('CAS', 'CAS numbers')) },
+    { label: 'Flavor Profile', value: passthroughOrText('Flavor profile', 'Flavor Profile') },
+    { label: 'FEMA Flavor Profile', value: passthroughOrText('FEMA Flavor Profile', 'FEMA flavor profile') },
+    { label: 'FEMA Number', value: pick(fromFlat('FEMA Number', 'FEMA number')) },
+    { label: 'Taste', value: pick(fromFlat('Taste')) },
+    { label: 'Odor', value: pick(fromFlat('Odor')) },
+    { label: 'Functional Groups', value: passthroughOrText('Functional Groups', 'Functional groups') },
+  ];
+
+  const description = [
+    { label: 'Flavor profile', value: passthroughOrText('Flavor profile') },
+    { label: 'FooDB flavor profile', value: passthroughOrText('FooDB flavor profile') },
+    { label: 'FEMA flavor profile', value: passthroughOrText('FEMA flavor profile') },
+    { label: 'Odor', value: pick(fromFlat('Odor')) },
+    { label: 'Functional groups', value: passthroughOrText('Functional groups') },
+    { label: 'Bitter compound', value: pick(fromFlat('Bitter compound')) },
+    { label: 'Source description', value: pick(fromFlat('Source description')) },
+  ];
+
+  const regulatoryStatus = sectionFromLabels(['FDA status', 'JECFA status']);
+
+  const aromaTasteThreshold = sectionFromLabels(['Aroma threshold values', 'Taste threshold values']);
+
+  const naturalOccurrence = sectionFromLabels([
+    'Occurrence summary', 'Source entity count', 'Representative sources',
+    'Documented natural occurrence',
+  ]);
+
+  const composition = sectionFromLabels([
+    'Molecular formula', 'Molecular composition', 'Number of atoms',
+  ]);
+
+  const consumption = sectionFromLabels([
+    'Consumption', 'Individual intake', 'Trade association guidelines', 'IOFI',
+  ]);
+
+  const specifications = sectionFromLabels(['Specifications']);
+
+  const foodCategoryTable = rawFlat('Food category usual/max');
+  const reportedUses = [
+    { label: 'Reported uses (ppm)', value: pick(fromFlat('Reported uses (ppm)')) },
+    {
+      label: 'Food category usual/max',
+      value: (foodCategoryTable && typeof foodCategoryTable === 'object' && foodCategoryTable.type === 'table')
+        ? foodCategoryTable
+        : pick(fromFlat('Food category usual/max')),
+    },
+  ];
+
+  const synthesis = sectionFromLabels(['Synthesis']);
+
+  const physicalChemicalCharacteristics = sectionFromLabels(['Empirical formula / MW']);
+
   const structure = [
     { label: 'Number of atoms',                        value: pick(fromFlat('Number of atoms', 'number of atoms', 'number_of_atoms'), fromPubChem('HeavyAtomCount')) },
     { label: 'Molecular formula',                      value: pick(fromFlat('Molecular formula', 'molecular formula'), fromPubChem('MolecularFormula')) },
@@ -705,7 +896,23 @@ function buildSectionsFromMerged(pubProps, flat) {
     { label: 'Molecular 3D SASA',                      value: pick(fromFlat('Molecular 3D SASA', 'molecular 3d sasa')) },
   ].map(r => ({ ...r, value: formatValue(r.value || '—') }));
 
-  return { physicochemical, admet, structure };
+  return {
+    physicochemical,
+    molecularFlavorProfile,
+    nomenclature,
+    description,
+    regulatoryStatus,
+    aromaTasteThreshold,
+    naturalOccurrence,
+    composition,
+    admet,
+    structure,
+    consumption,
+    specifications,
+    reportedUses,
+    synthesis,
+    physicalChemicalCharacteristics,
+  };
 }
 
 
@@ -720,13 +927,16 @@ async function getMoleculeOverviewCached(pubchemId) {
       (async () => {
         const [entitiesPayload, detailsHtmlPayload, morePropertiesPayload, pubchemProps] = await Promise.allSettled([
           getMoleculeEntitiesPayloadCached(pubchemId),
-          axios.get('https://cosylab.iiitd.edu.in/flavordb/molecules_details', { params: { id: pubchemId }, timeout: 15000 }).then(res => res.data),
+          axios.get('https://cosylab.iiitd.edu.in/flavordb2/molecules_details', { params: { id: pubchemId }, timeout: 15000 }).then(res => res.data),
           fdbGet('/more_properties/by-pubchemId-range', { min: pubchemId, max: pubchemId, page: 0, size: 20 }),
           fetchPubChemProperties(pubchemId),
         ]);
 
         const entitiesRaw = entitiesPayload.status === 'fulfilled' ? entitiesPayload.value : null;
         const entities = entitiesRaw ? parseEntityRows(entitiesRaw) : [];
+        const entitiesError = entitiesPayload.status === 'rejected'
+          ? (entitiesPayload.reason?.message || 'Failed to load containing ingredients')
+          : null;
 
         const detailsHtml = detailsHtmlPayload.status === 'fulfilled' ? detailsHtmlPayload.value : '';
         const detailsFlat = parseMoleculeDetailsHtml(detailsHtml);
@@ -740,6 +950,7 @@ async function getMoleculeOverviewCached(pubchemId) {
 
         return {
           entities,
+          entitiesError,
           properties: mergedFlat,
           sections: buildSectionsFromMerged(pubProps, mergedFlat),
         };
@@ -840,22 +1051,52 @@ async function getMoleculeEntitiesPayloadCached(pubchemId) {
   return cache.moleculeEntitiesPayloadByPubchemId.get(key);
 }
 
-async function getMoleculeDfCached(pubchemId) {
-  const key = String(pubchemId);
-  if (!cache.moleculeDfByPubchemId.has(key)) {
-    cache.moleculeDfByPubchemId.set(
-      key,
-      (async () => {
-        try {
-          const payload = await getMoleculeEntitiesPayloadCached(pubchemId);
-          return moleculeDf(payload);
-        } catch {
-          return 1;
-        }
-      })()
-    );
+// Rarity (df = how many ingredients contain a molecule) is what makes a
+// first-time view of a large ingredient's molecule list slow: it's a network
+// round trip per molecule to the flaky upstream host. But most molecules are
+// shared across many ingredients, and df is reference data that essentially
+// never changes - so persist it to disk exactly like the molecule table
+// itself. Once a molecule's df has been looked up anywhere, every ingredient
+// that contains it becomes instant, across restarts too.
+const MOLECULE_DF_CACHE_FILE = path.join(MOLECULES_CACHE_DIR, 'molecule-df.json');
+let moleculeDfMap = null;
+let moleculeDfFlushTimer = null;
+
+function loadMoleculeDfMap() {
+  if (moleculeDfMap) return moleculeDfMap;
+  try {
+    const raw = JSON.parse(fs.readFileSync(MOLECULE_DF_CACHE_FILE, 'utf8'));
+    moleculeDfMap = raw && typeof raw === 'object' ? raw : {};
+  } catch {
+    moleculeDfMap = {};
   }
-  return cache.moleculeDfByPubchemId.get(key);
+  return moleculeDfMap;
+}
+
+function scheduleMoleculeDfFlush() {
+  if (moleculeDfFlushTimer) return;
+  moleculeDfFlushTimer = setTimeout(() => {
+    moleculeDfFlushTimer = null;
+    try {
+      fs.mkdirSync(MOLECULES_CACHE_DIR, { recursive: true });
+      fs.writeFileSync(MOLECULE_DF_CACHE_FILE, JSON.stringify(moleculeDfMap));
+    } catch (err) {
+      console.error('Failed to write molecule df disk cache:', err.message);
+    }
+  }, 3000);
+  moleculeDfFlushTimer.unref?.();
+}
+
+async function getMoleculeDfCached(pubchemId) {
+  const map = loadMoleculeDfMap();
+  const key = String(pubchemId);
+  if (map[key] != null) return map[key];
+
+  const payload = await getMoleculeEntitiesPayloadCached(pubchemId);
+  const df = moleculeDf(payload);
+  map[key] = df;
+  scheduleMoleculeDfFlush();
+  return df;
 }
 
 async function getFoodPairingsCached(entityName) {
@@ -930,7 +1171,7 @@ async function mapWithConcurrency(items, limit, fn) {
   return results;
 }
 
-async function fetchAllPages(path, params = {}, pageSize = 200) {
+async function fetchAllPages(path, params = {}, pageSize = 200, concurrency = MAX_CONCURRENT) {
   const first = await fdbGet(path, { ...params, page: 0, size: pageSize });
   const firstRows = bestList(first);
   const totalPages = parseInt(first?.totalPages || 1, 10) || 1;
@@ -940,7 +1181,7 @@ async function fetchAllPages(path, params = {}, pageSize = 200) {
   // sequential page-by-page fetching is what made the very first autocomplete
   // request (which has to pull the whole molecule/entity table) take so long.
   const pageNumbers = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
-  const pageRows = await mapWithConcurrency(pageNumbers, MAX_CONCURRENT, async (page) => {
+  const pageRows = await mapWithConcurrency(pageNumbers, concurrency, async (page) => {
     try {
       const payload = await fdbGet(path, { ...params, page, size: pageSize });
       return bestList(payload);
@@ -970,11 +1211,83 @@ function uniqByKey(rows, getKey) {
   return out;
 }
 
+const MOLECULES_CACHE_FILE = path.join(MOLECULES_CACHE_DIR, 'all-molecules.json');
+// The full molecule table is reference data that barely changes. Re-fetching
+// all ~23k rows (a 45-90s bulk pull, given how flaky the upstream host is
+// under concurrent load) is pure waste on every restart, and in production it
+// would mean whichever real user's request happens to trigger a stale cache
+// eats that 60s wait. Instead: always serve whatever is on disk immediately,
+// no matter its age, and refresh it in the background when it's past its TTL
+// - so a live request never blocks on the network. Only a machine/deploy that
+// has never built the cache at all pays the real cost, once.
+const MOLECULES_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+function statMoleculesCacheFile() {
+  try {
+    return fs.statSync(MOLECULES_CACHE_FILE);
+  } catch {
+    return null;
+  }
+}
+
+function readMoleculesDiskCacheAnyAge() {
+  try {
+    const rows = JSON.parse(fs.readFileSync(MOLECULES_CACHE_FILE, 'utf8'));
+    return Array.isArray(rows) && rows.length ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeMoleculesDiskCache(rows) {
+  try {
+    fs.mkdirSync(MOLECULES_CACHE_DIR, { recursive: true });
+    fs.writeFileSync(MOLECULES_CACHE_FILE, JSON.stringify(rows));
+  } catch (err) {
+    console.error('Failed to write molecules disk cache:', err.message);
+  }
+}
+
+async function fetchAllMoleculesFromUpstream() {
+  const { rows } = await fetchAllPages('/molecules_data/by-pubchemId-range', { min: 4, max: 100000000 }, 200);
+  return parseMoleculeRows(rows);
+}
+
+let refreshingMolecules = false;
+function refreshMoleculesInBackground() {
+  if (refreshingMolecules) return;
+  refreshingMolecules = true;
+  fetchAllMoleculesFromUpstream()
+    .then((molecules) => {
+      cache.allMoleculesPromise = Promise.resolve(molecules);
+      writeMoleculesDiskCache(molecules);
+      console.log(`Refreshed molecules cache in background: ${molecules.length} rows`);
+    })
+    .catch((err) => {
+      console.error('Background molecules cache refresh failed, keeping previous data:', err.message);
+    })
+    .finally(() => {
+      refreshingMolecules = false;
+    });
+}
+
 async function getAllMoleculesCached() {
   if (!cache.allMoleculesPromise) {
     cache.allMoleculesPromise = (async () => {
-      const { rows } = await fetchAllPages('/molecules_data/by-pubchemId-range', { min: 4, max: 100000000 }, 200);
-      return parseMoleculeRows(rows);
+      const stat = statMoleculesCacheFile();
+      const cached = stat ? readMoleculesDiskCacheAnyAge() : null;
+
+      if (cached) {
+        console.log(`Loaded ${cached.length} molecules from disk cache (skipped bulk fetch)`);
+        if (Date.now() - stat.mtimeMs > MOLECULES_CACHE_TTL_MS) refreshMoleculesInBackground();
+        return cached;
+      }
+
+      // No cache at all yet - first-ever run on this machine/deploy. This is
+      // the only case where a request actually has to wait on the network.
+      const molecules = await fetchAllMoleculesFromUpstream();
+      writeMoleculesDiskCache(molecules);
+      return molecules;
     })();
   }
   return cache.allMoleculesPromise;
@@ -1010,6 +1323,7 @@ async function fetchMoleculeCriteria(field, value, extra = {}) {
       functional_group: 'functional_group',
       flavor_profile: 'flavor_profile',
       fema_flavor_profile: 'fema_flavor_profile',
+      fooddb_flavor_profile: 'fooddb_flavor_profile',
     };
     if (MULTI_VALUE_FIELDS[field]) {
       const rowField = MULTI_VALUE_FIELDS[field];
@@ -1071,6 +1385,7 @@ async function searchMoleculesCombined(query) {
   if (normalizeText(query.functional_group)) criteria.push({ field: 'functional_group', value: query.functional_group });
   if (normalizeText(query.flavor_profile)) criteria.push({ field: 'flavor_profile', value: query.flavor_profile });
   if (normalizeText(query.fema_flavor_profile)) criteria.push({ field: 'fema_flavor_profile', value: query.fema_flavor_profile });
+  if (normalizeText(query.fooddb_flavor_profile)) criteria.push({ field: 'fooddb_flavor_profile', value: query.fooddb_flavor_profile });
   if (normalizeText(query.type)) criteria.push({ field: 'type', value: query.type });
   if (normalizeText(query.smiles)) criteria.push({ field: 'smiles', value: query.smiles });
 
@@ -1133,7 +1448,7 @@ async function paginateRows(rows, page = 0, size = PAGE_SIZE) {
 // (like "primary alcohol"), not the whole concatenated string — treating the
 // raw field as a single name is what produced the "acetal@enol ether@..."
 // garbage suggestions instead of a clean "primary alcohol" match.
-const MULTI_VALUE_MOLECULE_FIELDS = new Set(['functional_group', 'flavor_profile', 'fema_flavor_profile']);
+const MULTI_VALUE_MOLECULE_FIELDS = new Set(['functional_group', 'flavor_profile', 'fema_flavor_profile', 'fooddb_flavor_profile']);
 
 
 
@@ -1365,8 +1680,12 @@ app.get('/api/molecules/:entityId', async (req, res) => {
               const payload = await getMoleculeEntitiesPayloadCached(mol.pubchem_id);
               const df = moleculeDf(payload);
               return { pubchem_id: mol.pubchem_id, name: mol.name, df, importance: scoreFromDf(df) };
-            } catch {
-              return { pubchem_id: mol.pubchem_id, name: mol.name, df: 1, importance: 1.0 };
+            } catch (err) {
+              // Don't fabricate df:1 (unique) here - a failed lookup is not
+              // evidence of rarity. Surface it as unknown instead so it can't
+              // be mistaken for a genuinely unique molecule.
+              console.error('df lookup failed for', mol.pubchem_id, err.message);
+              return { pubchem_id: mol.pubchem_id, name: mol.name, df: null, importance: 0 };
             }
           })
         )
@@ -1441,12 +1760,16 @@ app.get('/api/pairings/:entityId', async (req, res) => {
                 importance: scoreFromDf(df),
                 entityRows,
               };
-            } catch {
+            } catch (err) {
+              // A failed lookup must not count as maximally rare (df:1) - that
+              // would give it the highest possible weight in pairing scores.
+              // Contribute nothing instead of fabricating a rarity signal.
+              console.error('df lookup failed for', mol.pubchem_id, err.message);
               return {
                 pubchem_id: mol.pubchem_id,
                 name: mol.name,
-                df: 1,
-                importance: 1.0,
+                df: null,
+                importance: 0,
                 entityRows: [],
               };
             }
@@ -1549,6 +1872,7 @@ app.get('/api/molecule-overview/:pubchemId', async (req, res) => {
     res.json({
       pubchemId,
       entities: overview.entities,
+      entitiesError: overview.entitiesError,
       properties: overview.properties,
       sections: overview.sections,
     });

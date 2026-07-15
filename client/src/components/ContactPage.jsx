@@ -14,7 +14,7 @@ export default function ContactPage() {
               B-205, Academic Block,<br />
               Okhla Phase III, Near Govindpuri Metro Station,<br />
               New Delhi, India 110020.<br />
-              <b>Email: </b><a href="mailto:bagler+FlavorDB@iiitd.ac.in">bagler+FlavorDB@iiitd.ac.in</a><br />
+              <b>Email: </b><a href="mailto:bagler+FlavorDBPro@iiitd.ac.in">bagler+FlavorDBPro@iiitd.ac.in</a><br />
               <b>Tel:</b> +91-11-26907-443 (Work)
             </p>
           </div>

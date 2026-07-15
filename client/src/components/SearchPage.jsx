@@ -467,6 +467,7 @@ export default function SearchPage({
     functional_group: '',
     flavor_profile: '',
     fema_flavor_profile: '',
+    fooddb_flavor_profile: '',
     from: '',
     to: '',
     hbd: '',
@@ -664,6 +665,14 @@ export default function SearchPage({
                   placeholder="FEMA Flavor"
                   fetchUrl={moleculeAutocomplete('fema_flavor_profile')}
                   onSelect={(item) => setMolForm((s) => ({ ...s, fema_flavor_profile: item.name || item.label || '' }))}
+                />
+                <AutocompleteField
+                  label="FooDB Flavor profile"
+                  value={molForm.fooddb_flavor_profile}
+                  onChange={(v) => setMolForm((s) => ({ ...s, fooddb_flavor_profile: v }))}
+                  placeholder="FooDB Flavor"
+                  fetchUrl={moleculeAutocomplete('fooddb_flavor_profile')}
+                  onSelect={(item) => setMolForm((s) => ({ ...s, fooddb_flavor_profile: item.name || item.label || '' }))}
                 />
                 <div className="fdb-range-row">
                   <div className="fdb-field-label">Range of molecular weight (g/mol)</div>

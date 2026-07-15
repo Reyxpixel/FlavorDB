@@ -12,7 +12,7 @@ import HowToUsePage from './components/HowToUsePage';
 
 const MOL_FIELDS = [
   'common_name', 'functional_group', 'flavor_profile', 'fema_flavor_profile',
-  'from', 'to', 'hbd', 'hba', 'type', 'smiles',
+  'fooddb_flavor_profile', 'from', 'to', 'hbd', 'hba', 'type', 'smiles',
 ];
 
 const EMPTY_MOL_FORM = MOL_FIELDS.reduce((acc, k) => ({ ...acc, [k]: '' }), {});
@@ -279,6 +279,7 @@ export default function App() {
             scrollTo={scrollTo}
             onBack={goBack}
             onOpenEntity={openMolecules}
+            onSearchField={(field, value) => openMoleculeResults({ [field]: value })}
           />
         )}
 

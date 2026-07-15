@@ -11,6 +11,7 @@ function describeQuery(query) {
     functional_group: 'Functional Group',
     flavor_profile: 'Flavor Profile',
     fema_flavor_profile: 'FEMA Flavor Profile',
+    fooddb_flavor_profile: 'FooDB Flavor Profile',
     type: 'Type',
     from: 'Weight from',
     to: 'Weight to',

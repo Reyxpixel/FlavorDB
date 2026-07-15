@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiPath } from '../apiPath';
-import { CatTag, RarityChip, Spinner, TableWrap } from './Shared';
+import { RarityChip, Spinner, TableWrap } from './Shared';
 
 const JSMOL_SCRIPT_URL = 'https://chemapps.stolaf.edu/jmol/jsmol/js/JSmol.min.js';
 const JSMOL_BASE_PATH = 'https://chemapps.stolaf.edu/jmol/jsmol';
@@ -10,24 +10,85 @@ function formatMaybe(value, fallback = '—') {
   return value;
 }
 
-function PropertyRow({ label, value }) {
+function PropertyTable({ table }) {
   return (
-    <div className="molecule-detail-row">
-      <div className="molecule-detail-label">{label}</div>
-      <div className="molecule-detail-value">{value}</div>
+    <div className="molecule-detail-table-wrap">
+      <table className="molecule-detail-table">
+        {Array.isArray(table.headers) && (
+          <thead>
+            <tr>
+              {table.headers.map((header, i) => (
+                <th key={i}>{header}</th>
+              ))}
+            </tr>
+          </thead>
+        )}
+        <tbody>
+          {table.rows.map((row, ri) => (
+            <tr key={ri}>
+              {row.map((cell, ci) => (
+                <td key={ci}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function PropertyPanel({ title, rows }) {
+function PropertyLinks({ items, onSearchField }) {
   return (
-    <div className="molecule-panel">
-      <div className="molecule-panel-head">{title}</div>
-      <div className="molecule-detail-list molecule-detail-list--scroll">
-        {rows.map((row) => (
-          <PropertyRow key={row.label} label={row.label} value={row.value} />
-        ))}
+    <span className="molecule-detail-links">
+      {items.map((item, i) => (
+        <React.Fragment key={`${item.field}-${item.value}-${i}`}>
+          {i > 0 && ', '}
+          <button
+            type="button"
+            className="molecule-detail-link"
+            onClick={() => onSearchField?.(item.field, item.value)}
+          >
+            {item.text}
+          </button>
+        </React.Fragment>
+      ))}
+    </span>
+  );
+}
+
+function PropertyRow({ label, value, onSearchField }) {
+  const isTable = value && typeof value === 'object' && value.type === 'table';
+  const isLinks = value && typeof value === 'object' && value.type === 'links';
+  return (
+    <div className={`molecule-detail-row${isTable ? ' molecule-detail-row--table' : ''}`}>
+      <div className="molecule-detail-label">{label}</div>
+      <div className="molecule-detail-value">
+        {isTable ? <PropertyTable table={value} /> : isLinks ? <PropertyLinks items={value.items} onSearchField={onSearchField} /> : value}
       </div>
+    </div>
+  );
+}
+
+function PropertyPanel({ title, rows, onSearchField }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="molecule-panel molecule-panel--accordion">
+      <button
+        type="button"
+        className="molecule-panel-head molecule-panel-head--toggle"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span>{title}</span>
+        <span className={`molecule-panel-chevron ${open ? 'open' : ''}`} aria-hidden="true">&#9662;</span>
+      </button>
+      {open && (
+        <div className="molecule-detail-list molecule-detail-list--scroll">
+          {rows.map((row) => (
+            <PropertyRow key={row.label} label={row.label} value={row.value} onSearchField={onSearchField} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -165,13 +226,13 @@ function JSmolViewer({ pubchemId, active }) {
   );
 }
 
-export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack, onOpenEntity }) {
+export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack, onOpenEntity, onSearchField }) {
   const entitiesRef = useRef(null);
   const [activeTab, setActiveTab] = useState('image');
   const [containingEntities, setContainingEntities] = useState([]);
   const [loadingEntities, setLoadingEntities] = useState(true);
   const [entityError, setEntityError] = useState(null);
-  const [sections, setSections] = useState({ physicochemical: [], admet: [], structure: [] });
+  const [sections, setSections] = useState({});
   const [propertiesError, setPropertiesError] = useState(null);
   const [loadingProperties, setLoadingProperties] = useState(true);
 
@@ -196,7 +257,7 @@ export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack,
     setContainingEntities([]);
     setLoadingProperties(true);
     setPropertiesError(null);
-    setSections({ physicochemical: [], admet: [], structure: [] });
+    setSections({});
 
     fetch(apiPath(`/api/molecule-overview/${molecule.pubchem_id}`), { signal: ctrl.signal })
       .then(async (res) => {
@@ -207,7 +268,8 @@ export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack,
       .then((data) => {
         if (cancelled) return;
         setContainingEntities(Array.isArray(data.entities) ? data.entities : []);
-        setSections(data.sections || { physicochemical: [], admet: [], structure: [] });
+        setSections(data.sections || {});
+        if (data.entitiesError) setEntityError(data.entitiesError);
       })
       .catch((err) => {
         if (cancelled || err.name === 'AbortError') return;
@@ -238,17 +300,35 @@ export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack,
 
   if (!entity || !molecule) return null;
 
+  // The molecule prop's df/importance/rarity are only a placeholder passed in
+  // at navigation time (e.g. defaulted to df:1 when arriving from a plain
+  // search result rather than an already-ranked ingredient molecule list).
+  // Once containingEntities has actually loaded, its length is the real,
+  // authoritative count - every derived figure below must come from that same
+  // number so "Present In", "Importance", "Rarity" and "Contained in" can
+  // never disagree with each other.
   const totalContaining = containingEntities.length || molecule.df || 0;
   const containedLabel = totalContaining === 1 ? 'Ingredient' : 'Ingredients';
   const containedText = `${totalContaining} ${containedLabel}`;
+  const effectiveImportance = 1 / Math.max(totalContaining, 1);
   const rarity =
-    molecule.rarity?.label ||
-    (molecule.df === 1 ? 'unique' : molecule.df <= 5 ? 'rare' : molecule.df <= 50 ? 'common' : 'ubiquitous');
+    totalContaining === 1 ? 'unique' : totalContaining <= 5 ? 'rare' : totalContaining <= 50 ? 'common' : 'ubiquitous';
 
   const propertyGrid = [
     { key: 'physicochemical', title: 'Physicochemical Properties' },
+    { key: 'nomenclature', title: 'Nomenclature' },
+    { key: 'description', title: 'Description' },
+    { key: 'regulatoryStatus', title: 'Regulatory Status' },
+    { key: 'aromaTasteThreshold', title: 'Aroma/Taste Threshold Values' },
+    { key: 'naturalOccurrence', title: 'Natural Occurence' },
+    { key: 'composition', title: 'Composition' },
     { key: 'admet', title: 'ADMET Properties' },
     { key: 'structure', title: '2D/3D Properties' },
+    { key: 'consumption', title: 'Consumption' },
+    { key: 'specifications', title: 'Specifications' },
+    { key: 'reportedUses', title: 'Reported Uses' },
+    { key: 'synthesis', title: 'Synthesis' },
+    { key: 'physicalChemicalCharacteristics', title: 'Physical-Chemical Characteristics' },
   ];
 
   return (
@@ -280,8 +360,8 @@ export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack,
         <div className="meta">
           Ingredient: <strong>{entity.name}</strong>
           &nbsp;·&nbsp; PubChem ID: {molecule.pubchem_id}
-          &nbsp;·&nbsp; Present In: {molecule.df}
-          &nbsp;·&nbsp; Importance: {Number(molecule.importance || 0).toFixed(6)}
+          &nbsp;·&nbsp; Present In: {totalContaining}
+          &nbsp;·&nbsp; Importance: {effectiveImportance.toFixed(6)}
         </div>
       </div>
 
@@ -291,10 +371,13 @@ export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack,
           <div className="molecule-detail-list">
             <PropertyRow label="Common name" value={molecule.name} />
             <PropertyRow label="PubChem ID" value={molecule.pubchem_id} />
+            {(sections.molecularFlavorProfile || []).map((row) => (
+              <PropertyRow key={row.label} label={row.label} value={row.value} onSearchField={onSearchField} />
+            ))}
             <PropertyRow label="Contained in" value={containedText} />
             <PropertyRow
               label="Rarity"
-              value={<RarityChip rarity={molecule.rarity || { label: rarity, cls: `rarity-${rarity}` }} />}
+              value={<RarityChip rarity={{ label: rarity, cls: `rarity-${rarity}` }} />}
             />
             <PropertyRow
               label={
@@ -310,9 +393,8 @@ export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack,
                   </span>
                 </div>
               }
-              value={<span className="mono">{Number(molecule.importance || 0).toFixed(8)}</span>}
+              value={<span className="mono">{effectiveImportance.toFixed(8)}</span>}
             />
-            <PropertyRow label="Ingredient" value={<CatTag category={entity.category} />} />
           </div>
         </div>
 
@@ -353,12 +435,9 @@ export default function MoleculeDetailPage({ entity, molecule, scrollTo, onBack,
         </div>
       </div>
 
-      <div
-        className="molecule-properties-grid"
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1rem' }}
-      >
+      <div className="molecule-properties-accordion">
         {propertyGrid.map(({ key, title }) => (
-          <PropertyPanel key={key} title={title} rows={sections[key] || []} />
+          <PropertyPanel key={key} title={title} rows={sections[key] || []} onSearchField={onSearchField} />
         ))}
       </div>
 

@@ -378,6 +378,12 @@ button.ent-link {
   border: 1px solid #e0e0e0;
 }
 
+.rarity-unknown {
+  background: #fafafa;
+  color: #9e9e9e;
+  border: 1px dashed #ccc;
+}
+
 
 .pair-link {
   display: inline-block;
@@ -970,6 +976,41 @@ button.ent-link {
   font-weight: 700;
 }
 
+.molecule-properties-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.molecule-panel--accordion .molecule-panel-head--toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  border-bottom: none;
+  font: inherit;
+  cursor: pointer;
+  color: #1565c0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.molecule-panel-chevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+  color: #1565c0;
+}
+
+.molecule-panel-chevron.open {
+  transform: rotate(180deg);
+}
+
+.molecule-panel--accordion .molecule-detail-list {
+  border-top: 1px solid #ddd;
+}
+
 .molecule-detail-list {
   display: flex;
   flex-direction: column;
@@ -1004,6 +1045,50 @@ button.ent-link {
   min-width: 0;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+
+.molecule-detail-row--table {
+  align-items: flex-start;
+}
+
+.molecule-detail-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.molecule-detail-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.molecule-detail-table th,
+.molecule-detail-table td {
+  border: 1px solid #eee;
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.molecule-detail-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: #1565c0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.molecule-detail-link:hover {
+  color: #0d47a1;
+}
+
+.molecule-detail-table thead th {
+  background: #fafafa;
+  color: #444;
+  font-weight: 700;
 }
 
 .molecule-preview-tabs {
