@@ -965,6 +965,24 @@ button.ent-link {
   justify-content: center;
 }
 
+.fdb-pagination-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.fdb-pagination-footer .fdb-pagination {
+  margin-top: 0;
+}
+
+.fdb-showing-entries {
+  font-size: 0.82rem;
+  color: #666;
+}
+
 
 .pag-btn.active {
   background: #1565c0;

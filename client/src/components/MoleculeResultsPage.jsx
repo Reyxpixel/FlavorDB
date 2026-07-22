@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiPath } from '../apiPath';
-import { Spinner, TableWrap, formatTags } from './Shared';
+import { Spinner, TableWrap, formatTags, Pagination } from './Shared';
 
 const PAGE_SIZE = 20;
 
@@ -147,21 +147,13 @@ export default function MoleculeResultsPage({ query, onBack, onOpenMolecule }) {
             </tbody>
           </table>
 
-          {safeTotal > 1 && (
-            <div className="fdb-pagination">
-              <button className="pag-btn" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-                ← Previous
-              </button>
-              <span className="snote">Page {page + 1} of {safeTotal}</span>
-              <button
-                className="pag-btn"
-                disabled={page >= safeTotal - 1}
-                onClick={() => setPage((p) => Math.min(safeTotal - 1, p + 1))}
-              >
-                Next →
-              </button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={safeTotal}
+            onPageChange={setPage}
+            totalElements={totalElements}
+            pageSize={PAGE_SIZE}
+          />
         </TableWrap>
       )}
     </div>

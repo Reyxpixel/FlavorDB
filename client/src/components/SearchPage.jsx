@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiPath } from '../apiPath';
-import { CatTag, TableWrap } from './Shared';
+import { CatTag, TableWrap, Pagination } from './Shared';
 import { catColor } from '../categories';
 import PairingsPage from './PairingsPage';
 
@@ -374,14 +374,15 @@ function JsmeEditor({ onSmilesChange }) {
   );
 }
 
-function ResultPagination({ page, totalPages, onPageChange }) {
-  const safeTotal = Math.max(1, totalPages || 1);
+function ResultPagination({ page, totalPages, onPageChange, totalElements }) {
   return (
-    <div className="fdb-pagination">
-      <button className="pag-btn" disabled={page <= 0} onClick={() => onPageChange(page - 1)}>← Previous</button>
-      <span className="snote">Page {page + 1} of {safeTotal}</span>
-      <button className="pag-btn" disabled={page >= safeTotal - 1} onClick={() => onPageChange(page + 1)}>Next →</button>
-    </div>
+    <Pagination
+      page={page}
+      totalPages={totalPages}
+      onPageChange={onPageChange}
+      totalElements={totalElements}
+      pageSize={PAGE_SIZE}
+    />
   );
 }
 
@@ -408,13 +409,12 @@ function EntityResults({ rows = [], totalElements = 0, page = 0, totalPages = 1,
               </td>
               <td><CatTag category={ent.category} /></td>
               <td>{ent.source || '—'}</td>
-              <td className="right"><button className="pair-link" onClick={() => onOpenPairings(ent)}>Pair It</button></td>
+              <td className="right"><button type="button" className="pair-link" onClick={() => onOpenPairings(ent)}>Pair It</button></td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="fdb-results-summary">Found {totalElements} entities.</div>
-      <ResultPagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+      <ResultPagination page={page} totalPages={totalPages} onPageChange={onPageChange} totalElements={totalElements} />
     </TableWrap>
   );
 }
@@ -442,13 +442,12 @@ function SourceResults({ rows = [], totalElements = 0, page = 0, totalPages = 1,
                   {ent.name}
                 </button>
               </td>
-              <td className="right"><button className="pair-link" onClick={() => onOpenPairings(ent)}>Pair It</button></td>
+              <td className="right"><button type="button" className="pair-link" onClick={() => onOpenPairings(ent)}>Pair It</button></td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="fdb-results-summary">Found {totalElements} entities for this source.</div>
-      <ResultPagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+      <ResultPagination page={page} totalPages={totalPages} onPageChange={onPageChange} totalElements={totalElements} />
     </TableWrap>
   );
 }
@@ -627,7 +626,13 @@ export default function SearchPage({
 
       <div className="fdb-tab-content">
         {activeTab === 'molecules' && (
-          <div className="fdb-two-col">
+          <form
+            className="fdb-two-col"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (hasMoleculeCriteria) runMoleculeSearch();
+            }}
+          >
             <div>
               <div className="fdb-search-banner">
                 <span>Search based on physicochemical properties of Flavor Molecules</span>
@@ -712,9 +717,8 @@ export default function SearchPage({
               </div>
 
               <button
-                type="button"
+                type="submit"
                 className="btn fdb-search-btn"
-                onClick={runMoleculeSearch}
                 disabled={!hasMoleculeCriteria}
               >
                 Search
@@ -722,11 +726,16 @@ export default function SearchPage({
             </div>
 
             <JsmeEditor onSmilesChange={(smiles) => setMolForm((s) => ({ ...s, smiles }))} />
-          </div>
+          </form>
         )}
 
         {activeTab === 'entities' && (
-          <div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              runEntitySearch(0);
+            }}
+          >
             <div className="fdb-search-banner">
               <span>Search based on Food Entities or Natural Ingredients</span>
             </div>
@@ -758,7 +767,7 @@ export default function SearchPage({
                 onSelect={(item) => setEntityCategory(item.name || '')}
               />
             </div>
-            <button type="button" className="btn fdb-search-btn" onClick={() => runEntitySearch(0)} disabled={entityLoading}>
+            <button type="submit" className="btn fdb-search-btn" disabled={entityLoading}>
               {entityLoading ? 'Searching…' : 'Search'}
             </button>
             {entityError && <div className="fdb-error-box">{entityError}</div>}
@@ -776,11 +785,16 @@ export default function SearchPage({
             {entitySubmitted && !entityLoading && !entityResults.length && !entityError && (
               <div className="fdb-empty-box">No entities matched your query.</div>
             )}
-          </div>
+          </form>
         )}
 
         {activeTab === 'sources' && (
-          <div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              runSourceSearch(0);
+            }}
+          >
             <div className="fdb-search-banner">
               <span>Search based on the Natural Sources of Food Entities or Ingredients</span>
             </div>
@@ -794,7 +808,7 @@ export default function SearchPage({
                 onSelect={(item) => setSourceQuery(item.name || item.natural_source_name || '')}
               />
             </div>
-            <button type="button" className="btn fdb-search-btn" onClick={() => runSourceSearch(0)} disabled={sourceLoading}>
+            <button type="submit" className="btn fdb-search-btn" disabled={sourceLoading}>
               {sourceLoading ? 'Searching…' : 'Search'}
             </button>
             {sourceError && <div className="fdb-error-box">{sourceError}</div>}
@@ -812,28 +826,35 @@ export default function SearchPage({
             {sourceSubmitted && !sourceLoading && !sourceResults.length && !sourceError && (
               <div className="fdb-empty-box">No sources matched your query.</div>
             )}
-          </div>
+          </form>
         )}
 
         {activeTab === 'pairing' && (
           <div>
-            <div className="fdb-search-banner">
-              <span>Search for Ingredients Entities that share flavor molecules and profiles</span>
-            </div>
-            <div className="fdb-form-grid fdb-form-grid-entities">
-              <AutocompleteField
-                label="Entity Name"
-                value={pairQuery}
-                onChange={setPairQuery}
-                placeholder="Entity Name"
-                fetchUrl={entityAutocomplete('name')}
-                onSelect={(item) => setPairQuery(item.name || '')}
-              />
-            </div>
-            <button type="button" className="btn fdb-search-btn" onClick={runPairSearch}>
-              Pair It
-            </button>
-            {pairError && <div className="fdb-error-box">{pairError}</div>}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                runPairSearch();
+              }}
+            >
+              <div className="fdb-search-banner">
+                <span>Search for Ingredients Entities that share flavor molecules and profiles</span>
+              </div>
+              <div className="fdb-form-grid fdb-form-grid-entities">
+                <AutocompleteField
+                  label="Entity Name"
+                  value={pairQuery}
+                  onChange={setPairQuery}
+                  placeholder="Entity Name"
+                  fetchUrl={entityAutocomplete('name')}
+                  onSelect={(item) => setPairQuery(item.name || '')}
+                />
+              </div>
+              <button type="submit" className="btn fdb-search-btn">
+                Pair It
+              </button>
+              {pairError && <div className="fdb-error-box">{pairError}</div>}
+            </form>
             {pairEntity && (
               <div className="fdb-inline-panel">
                 <PairingsPage entity={pairEntity} onBackToMolecules={() => setPairEntity(null)} />

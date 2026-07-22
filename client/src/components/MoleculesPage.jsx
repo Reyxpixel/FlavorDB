@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiPath } from '../apiPath';
-import { Spinner, CatTag, RarityChip, TableWrap, ImpBar, InfoTip } from './Shared';
+import { Spinner, CatTag, RarityChip, TableWrap, ImpBar, InfoTip, Pagination } from './Shared';
 
 const ROWS_PER_PAGE = 10;
 
@@ -59,41 +59,6 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
   const safePage = Math.min(page, pageCount - 1);
   const startIndex = safePage * ROWS_PER_PAGE;
   const visibleRows = ranked.slice(startIndex, startIndex + ROWS_PER_PAGE);
-
-  const paginationItems = useMemo(() => {
-    if (pageCount <= 7) {
-      return Array.from({ length: pageCount }, (_, i) => ({ type: 'page', page: i }));
-    }
-
-    const items = [{ type: 'page', page: 0 }];
-
-    if (safePage <= 2) {
-      for (let p = 1; p <= Math.min(4, pageCount - 2); p++) {
-        items.push({ type: 'page', page: p });
-      }
-      if (pageCount > 5) items.push({ type: 'ellipsis' });
-      items.push({ type: 'page', page: pageCount - 1 });
-      return items;
-    }
-
-    if (safePage >= pageCount - 3) {
-      items.push({ type: 'ellipsis' });
-      for (let p = Math.max(1, pageCount - 5); p <= pageCount - 2; p++) {
-        items.push({ type: 'page', page: p });
-      }
-      items.push({ type: 'page', page: pageCount - 1 });
-      return items;
-    }
-
-    items.push({ type: 'ellipsis' });
-    items.push({ type: 'page', page: safePage - 1 });
-    items.push({ type: 'page', page: safePage });
-    items.push({ type: 'page', page: safePage + 1 });
-    items.push({ type: 'ellipsis' });
-    items.push({ type: 'page', page: pageCount - 1 });
-
-    return items;
-  }, [pageCount, safePage]);
 
   return (
     <div>
@@ -279,46 +244,13 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
               </tbody>
             </table>
 
-            {pageCount > 1 && (
-              <div className="fdb-pagination fdb-pagination-centered">
-                <button
-                  className="pag-btn"
-                  disabled={safePage <= 0}
-                  onClick={() => setPage(Math.max(0, safePage - 1))}
-                >
-                  ← Previous
-                </button>
-
-                {paginationItems.map((item, idx) => {
-                  if (item.type === 'ellipsis') {
-                    return (
-                      <span key={`ellipsis-${idx}`} className="pag-ellipsis">
-                        …
-                      </span>
-                    );
-                  }
-
-                  const isActive = item.page === safePage;
-                  return (
-                    <button
-                      key={item.page}
-                      className={`pag-btn${isActive ? ' active' : ''}`}
-                      onClick={() => setPage(item.page)}
-                    >
-                      {item.page + 1}
-                    </button>
-                  );
-                })}
-
-                <button
-                  className="pag-btn"
-                  disabled={safePage >= pageCount - 1}
-                  onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
-                >
-                  Next →
-                </button>
-              </div>
-            )}
+            <Pagination
+              page={safePage}
+              totalPages={pageCount}
+              onPageChange={setPage}
+              totalElements={ranked.length}
+              pageSize={ROWS_PER_PAGE}
+            />
           </TableWrap>
         </>
       )}

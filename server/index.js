@@ -1443,11 +1443,16 @@ async function searchMoleculesCombined(query) {
 }
 
 async function paginateRows(rows, page = 0, size = PAGE_SIZE) {
+  // size/page arrive as strings from req.query. Left as a string, `start +
+  // size` below silently becomes string concatenation once start > 0 (e.g.
+  // 20 + "20" = "2020" instead of 40), so every page past the first returned
+  // up to ~100x too many rows instead of a clean page size.
+  const pageSize = parseInt(size, 10) || PAGE_SIZE;
   const totalElements = rows.length;
-  const totalPages = Math.max(1, Math.ceil(totalElements / size));
+  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
   const safePage = Math.min(Math.max(parseInt(page, 10) || 0, 0), totalPages - 1);
-  const start = safePage * size;
-  return { rows: rows.slice(start, start + size), totalElements, totalPages, page: safePage };
+  const start = safePage * pageSize;
+  return { rows: rows.slice(start, start + pageSize), totalElements, totalPages, page: safePage };
 }
 
 // Fields that pack several distinct values into one '@'-delimited string per

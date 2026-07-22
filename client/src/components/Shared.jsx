@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { catColor } from '../categories';
 
 export function Spinner({ text = 'Loading…', progress = null }) {
@@ -94,5 +94,99 @@ export function PairBar({ pct }) {
     <span className="pair-bar-wrap">
       <span className="pair-bar-fill" style={{ display: 'block', width: `${pct.toFixed(1)}%` }} />
     </span>
+  );
+}
+
+// Shared numbered pager (Previous / 1 2 3 … N / Next) used by every
+// paginated result table, so ingredient molecule lists, flavor molecule
+// search, entity search, and source search all page the same way.
+export function Pagination({ page, totalPages, onPageChange, totalElements, pageSize }) {
+  const pageCount = Math.max(1, totalPages || 1);
+  const safePage = Math.min(Math.max(page || 0, 0), pageCount - 1);
+  const hasCounts = totalElements != null && pageSize != null;
+  const showingFrom = hasCounts && totalElements > 0 ? safePage * pageSize + 1 : 0;
+  const showingTo = hasCounts ? Math.min((safePage + 1) * pageSize, totalElements) : 0;
+
+  const items = useMemo(() => {
+    if (pageCount <= 7) {
+      return Array.from({ length: pageCount }, (_, i) => ({ type: 'page', page: i }));
+    }
+
+    const out = [{ type: 'page', page: 0 }];
+
+    if (safePage <= 2) {
+      for (let p = 1; p <= Math.min(4, pageCount - 2); p++) {
+        out.push({ type: 'page', page: p });
+      }
+      if (pageCount > 5) out.push({ type: 'ellipsis' });
+      out.push({ type: 'page', page: pageCount - 1 });
+      return out;
+    }
+
+    if (safePage >= pageCount - 3) {
+      out.push({ type: 'ellipsis' });
+      for (let p = Math.max(1, pageCount - 5); p <= pageCount - 2; p++) {
+        out.push({ type: 'page', page: p });
+      }
+      out.push({ type: 'page', page: pageCount - 1 });
+      return out;
+    }
+
+    out.push({ type: 'ellipsis' });
+    out.push({ type: 'page', page: safePage - 1 });
+    out.push({ type: 'page', page: safePage });
+    out.push({ type: 'page', page: safePage + 1 });
+    out.push({ type: 'ellipsis' });
+    out.push({ type: 'page', page: pageCount - 1 });
+    return out;
+  }, [pageCount, safePage]);
+
+  if (pageCount <= 1 && !hasCounts) return null;
+
+  return (
+    <div className="fdb-pagination-footer">
+      {hasCounts && (
+        <div className="fdb-showing-entries">
+          Showing {showingFrom} to {showingTo} of {totalElements} entries
+        </div>
+      )}
+
+      {pageCount > 1 && (
+        <div className="fdb-pagination fdb-pagination-centered">
+          <button
+            type="button"
+            className="pag-btn"
+            disabled={safePage <= 0}
+            onClick={() => onPageChange(Math.max(0, safePage - 1))}
+          >
+            ← Previous
+          </button>
+
+          {items.map((item, idx) =>
+            item.type === 'ellipsis' ? (
+              <span key={`ellipsis-${idx}`} className="pag-ellipsis">…</span>
+            ) : (
+              <button
+                key={item.page}
+                type="button"
+                className={`pag-btn${item.page === safePage ? ' active' : ''}`}
+                onClick={() => onPageChange(item.page)}
+              >
+                {item.page + 1}
+              </button>
+            )
+          )}
+
+          <button
+            type="button"
+            className="pag-btn"
+            disabled={safePage >= pageCount - 1}
+            onClick={() => onPageChange(Math.min(pageCount - 1, safePage + 1))}
+          >
+            Next →
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
