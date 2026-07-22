@@ -22,9 +22,10 @@ const cache = {
   foodPairingsByName: new Map(),     
   pairingsByKey: new Map(),          
   searchByName: new Map(),           
-  autocompleteCache: new Map(),      
-  moleculeSearchCache: new Map(),     
-  allMoleculesPromise: null,          
+  autocompleteCache: new Map(),
+  moleculeSearchCache: new Map(),
+  allMoleculesPromise: null,
+  entityImageCache: new Map(),
 };
 
 app.use(cors());
@@ -1576,6 +1577,57 @@ async function searchMoleculesRoute(query) {
   return { rows: paginated.rows, totalElements: paginated.totalElements, totalPages: paginated.totalPages };
 }
 
+// FlavorDB doesn't serve ingredient photos through the private REST backend
+// at all - flavordb1/flavordb2's own public site hosts them as static files,
+// keyed by that site's own entity_id (e.g. static/entities_images/162.jpg for
+// Apple). That id has no guaranteed relationship to our backend's entity_id,
+// so it's resolved by name against flavordb1's entity search (flavordb2's
+// equivalent search endpoint is itself broken right now) rather than assumed
+// to match. Confirmed flavordb1 and flavordb2 share the same id/image files
+// for the same ingredient, so either static path works once resolved.
+const FLAVORDB_SITE = 'https://cosylab.iiitd.edu.in';
+
+async function resolveEntityImageInfo(name) {
+  const q = normalizeText(name);
+  if (!q) return null;
+  if (cache.entityImageCache.has(q)) return cache.entityImageCache.get(q);
+
+  const task = (async () => {
+    try {
+      const res = await axios.get(`${FLAVORDB_SITE}/flavordb/entities`, {
+        params: { entity: name },
+        timeout: 15000,
+      });
+      let list = res.data;
+      if (typeof list === 'string') {
+        try { list = JSON.parse(list); } catch { list = []; }
+      }
+      if (!Array.isArray(list)) return null;
+
+      const match =
+        list.find((item) => normalizeText(item.entity_alias_readable) === q) ||
+        list.find((item) => normalizeText(item.entity_alias) === q) ||
+        null;
+      if (!match || match.entity_id == null) return null;
+
+      const entityId = match.entity_id;
+      return {
+        entityId,
+        imageUrl: `${FLAVORDB_SITE}/flavordb2/static/entities_images/${entityId}.jpg`,
+        naturalSourceImageUrl: `${FLAVORDB_SITE}/flavordb2/static/natural_source_images/${entityId}.jpg`,
+        naturalSourceName: match.natural_source_name || '',
+        naturalSourceUrl: match.natural_source_url || '',
+      };
+    } catch (err) {
+      console.warn('resolveEntityImageInfo failed for', name, err.message);
+      return null;
+    }
+  })();
+
+  cache.entityImageCache.set(q, task);
+  return task;
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────
 
 // Search entities
@@ -1652,6 +1704,11 @@ app.get('/api/natural-sources/search', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.get('/api/entity-image/:name', async (req, res) => {
+  const info = await resolveEntityImageInfo(req.params.name);
+  res.json(info || {});
 });
 
 

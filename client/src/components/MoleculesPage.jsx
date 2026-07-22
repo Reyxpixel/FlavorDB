@@ -10,6 +10,7 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(null);
   const [page, setPage] = useState(0);
+  const [images, setImages] = useState(null);
 
   useEffect(() => {
     if (!entity) return;
@@ -33,6 +34,19 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
 
     return () => ctrl.abort();
   }, [entity?.id]);
+
+  useEffect(() => {
+    if (!entity?.name) return;
+    setImages(null);
+    const ctrl = new AbortController();
+    fetch(apiPath(`/api/entity-image/${encodeURIComponent(entity.name)}`), { signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((data) => setImages(data?.imageUrl ? data : null))
+      .catch((e) => {
+        if (e.name !== 'AbortError') setImages(null);
+      });
+    return () => ctrl.abort();
+  }, [entity?.name]);
 
   if (!entity) return null;
 
@@ -102,6 +116,45 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
           Category: <CatTag category={entity.category} />
         </div>
       </div>
+
+      {images && images.imageUrl && (
+        <div className="entity-image-row">
+          <div className="entity-image-card">
+            <img
+              src={images.imageUrl}
+              alt={entity.name}
+              onError={(e) => {
+                const placeholder = 'https://cosylab.iiitd.edu.in/flavordb2/static/images/placeholder.png';
+                if (e.currentTarget.src !== placeholder) e.currentTarget.src = placeholder;
+              }}
+            />
+            <div className="entity-image-caption">{entity.name}</div>
+          </div>
+
+          {images.naturalSourceImageUrl && (
+            <div className="entity-image-card">
+              <img
+                src={images.naturalSourceImageUrl}
+                alt={images.naturalSourceName || 'Natural source'}
+                onError={(e) => {
+                  const placeholder = 'https://cosylab.iiitd.edu.in/flavordb2/static/images/placeholder.png';
+                  if (e.currentTarget.src !== placeholder) e.currentTarget.src = placeholder;
+                }}
+              />
+              <div className="entity-image-caption">
+                Natural Source:{' '}
+                {images.naturalSourceUrl ? (
+                  <a href={images.naturalSourceUrl} target="_blank" rel="noreferrer">
+                    {images.naturalSourceName || 'Link'}
+                  </a>
+                ) : (
+                  images.naturalSourceName || '—'
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {loading && <Spinner text={`Loading flavor molecules for ${entity.name}…`} progress={progress} />}
       {error && <p style={{ color: '#c62828', padding: '0.5rem 0' }}>Error: {error}</p>}
