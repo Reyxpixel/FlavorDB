@@ -1337,13 +1337,20 @@ async function fetchMoleculeCriteria(field, value, extra = {}) {
       });
     }
 
+    if (field === 'common_name') {
+      // flavordb2's own search does a "contains" match against the common
+      // name (searching "naphthalene" returns every naphthalene derivative,
+      // not just the exact molecule), not an exact match. The upstream
+      // by-commonName endpoint is exact-match only, so filter the cached
+      // table locally instead - this also matches the pattern already used
+      // for the multi-value fields and needs no live upstream call.
+      const all = await getAllMoleculesCached();
+      return all.filter((row) => normalizeText(row.name).includes(q));
+    }
+
     let path = '';
     let params = {};
     switch (field) {
-      case 'common_name':
-        path = '/molecules_data/by-commonName';
-        params = { common_name: value };
-        break;
       case 'type':
         path = '/molecules_data/filter-by-type';
         params = { type: value };
