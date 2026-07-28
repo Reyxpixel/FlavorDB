@@ -69,8 +69,23 @@ function PropertyRow({ label, value, onSearchField }) {
   );
 }
 
+// A row counts as blank the same way the server's own `pick()` marks it
+// empty ('—'), plus the structured table/links variants when they ended up
+// with nothing inside them.
+function isBlankValue(value) {
+  if (value == null || value === '' || value === '—') return true;
+  if (typeof value === 'object') {
+    if (value.type === 'table') return !Array.isArray(value.rows) || value.rows.length === 0;
+    if (value.type === 'links') return !Array.isArray(value.items) || value.items.length === 0;
+  }
+  return false;
+}
+
 function PropertyPanel({ title, rows, onSearchField }) {
   const [open, setOpen] = useState(false);
+  const visibleRows = rows.filter((row) => !isBlankValue(row.value));
+  if (visibleRows.length === 0) return null;
+
   return (
     <div className="molecule-panel molecule-panel--accordion">
       <button
@@ -84,7 +99,7 @@ function PropertyPanel({ title, rows, onSearchField }) {
       </button>
       {open && (
         <div className="molecule-detail-list molecule-detail-list--scroll">
-          {rows.map((row) => (
+          {visibleRows.map((row) => (
             <PropertyRow key={row.label} label={row.label} value={row.value} onSearchField={onSearchField} />
           ))}
         </div>

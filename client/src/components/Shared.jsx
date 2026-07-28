@@ -1,6 +1,26 @@
 import React, { useMemo, useState } from 'react';
 import { catColor } from '../categories';
 
+export function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+// The "Search:" box every results table gets, filtering whatever rows are
+// already loaded client-side - same contains() matching used everywhere
+// else in the app (autocomplete, common_name molecule search, etc).
+export function TableSearchBox({ value, onChange, placeholder = 'Search results…' }) {
+  return (
+    <div className="fdb-table-search">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
+
 export function Spinner({ text = 'Loading…', progress = null }) {
   return (
     <div>
@@ -44,13 +64,16 @@ export function Expander({ title, children }) {
   );
 }
 
-export function TableWrap({ title, meta, children }) {
+export function TableWrap({ title, meta, search, children }) {
   return (
     <div className="fdb-table-wrap">
-      {(title || meta) && (
+      {(title || meta || search) && (
         <div className="fdb-table-header">
           {title && <span className="fdb-table-title">{title}</span>}
-          {meta  && <span className="fdb-table-meta">{meta}</span>}
+          <div className="fdb-table-header-right">
+            {meta && <span className="fdb-table-meta">{meta}</span>}
+            {search}
+          </div>
         </div>
       )}
       {children}

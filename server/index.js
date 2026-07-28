@@ -1442,19 +1442,6 @@ async function searchMoleculesCombined(query) {
   return [...resultMap.values()].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 
-async function paginateRows(rows, page = 0, size = PAGE_SIZE) {
-  // size/page arrive as strings from req.query. Left as a string, `start +
-  // size` below silently becomes string concatenation once start > 0 (e.g.
-  // 20 + "20" = "2020" instead of 40), so every page past the first returned
-  // up to ~100x too many rows instead of a clean page size.
-  const pageSize = parseInt(size, 10) || PAGE_SIZE;
-  const totalElements = rows.length;
-  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
-  const safePage = Math.min(Math.max(parseInt(page, 10) || 0, 0), totalPages - 1);
-  const start = safePage * pageSize;
-  return { rows: rows.slice(start, start + pageSize), totalElements, totalPages, page: safePage };
-}
-
 // Fields that pack several distinct values into one '@'-delimited string per
 // molecule, e.g. functional_group: "alcohol@primary alcohol@carboxylic acid".
 // What a person is actually searching for is one of those individual values
@@ -1547,39 +1534,42 @@ async function autocompleteRows(domain, query, field) {
   return task;
 }
 
-async function searchEntities({ entity_alias = '', category = '', page = 0, size = PAGE_SIZE }) {
+// These three all return the FULL matching set in one response rather than
+// paginating server-side - the client fetches once and does pagination and
+// the results-table search box entirely locally (same pattern the entity's
+// own molecule list already used). Result sets here are at most a few
+// thousand rows, small enough that this is just one reasonably sized
+// response instead of N page round-trips.
+async function searchEntities({ entity_alias = '', category = '' }) {
   const q = normalizeText(entity_alias);
   const cat = normalizeText(category);
   if (q && cat) {
-    const payload = await fdbGet('/entities/by-name-and-category', { entity_alias: entity_alias, category, page, size });
-    const rows = parseEntityRows(payload);
-    return { rows, totalElements: payload?.totalElements ?? rows.length, totalPages: payload?.totalPages ?? 1 };
+    const { rows: raw } = await fetchAllPages('/entities/by-name-and-category', { entity_alias: entity_alias, category }, 200);
+    const rows = parseEntityRows(raw);
+    return { rows, totalElements: rows.length };
   }
 
   if (q) {
-    const payload = await fdbGet('/entities/by-entity-alias-readable', { entity_alias_readable: entity_alias, page, size });
-    const rows = parseEntityRows(payload);
-    return { rows, totalElements: payload?.totalElements ?? rows.length, totalPages: payload?.totalPages ?? 1 };
+    const { rows: raw } = await fetchAllPages('/entities/by-entity-alias-readable', { entity_alias_readable: entity_alias }, 200);
+    const rows = parseEntityRows(raw);
+    return { rows, totalElements: rows.length };
   }
 
   const all = await getAllEntitiesCached();
-  const filtered = cat ? all.filter((r) => normalizeText(r.category) === cat) : all;
-  const paginated = await paginateRows(filtered, page, size);
-  return { rows: paginated.rows, totalElements: paginated.totalElements, totalPages: paginated.totalPages };
+  const rows = cat ? all.filter((r) => normalizeText(r.category) === cat) : all;
+  return { rows, totalElements: rows.length };
 }
 
-async function searchNaturalSources({ natural_source_name = '', page = 0, size = PAGE_SIZE }) {
+async function searchNaturalSources({ natural_source_name = '' }) {
   const q = normalizeText(natural_source_name);
   const all = await getAllEntitiesCached();
-  const rows = q ? all.filter((r) => normalizeText(r.source).includes(q)) : all.map((r) => ({ ...r, source: r.source }));
-  const paginated = await paginateRows(rows, page, size);
-  return { rows: paginated.rows, totalElements: paginated.totalElements, totalPages: paginated.totalPages };
+  const rows = q ? all.filter((r) => normalizeText(r.source).includes(q)) : all;
+  return { rows, totalElements: rows.length };
 }
 
 async function searchMoleculesRoute(query) {
   const rows = await searchMoleculesCombined(query);
-  const paginated = await paginateRows(rows, query.page, query.size || PAGE_SIZE);
-  return { rows: paginated.rows, totalElements: paginated.totalElements, totalPages: paginated.totalPages };
+  return { rows, totalElements: rows.length };
 }
 
 // FlavorDB doesn't serve ingredient photos through the private REST backend
@@ -1742,7 +1732,7 @@ app.get('/api/autocomplete/sources', async (req, res) => {
 app.get('/api/flavor-molecules/search', async (req, res) => {
   try {
     const data = await searchMoleculesRoute(req.query);
-    res.json({ molecules: data.rows, totalElements: data.totalElements, totalPages: data.totalPages });
+    res.json({ molecules: data.rows, totalElements: data.totalElements });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1751,7 +1741,7 @@ app.get('/api/flavor-molecules/search', async (req, res) => {
 app.get('/api/entities/search', async (req, res) => {
   try {
     const data = await searchEntities(req.query);
-    res.json({ entities: data.rows, totalElements: data.totalElements, totalPages: data.totalPages });
+    res.json({ entities: data.rows, totalElements: data.totalElements });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1760,7 +1750,7 @@ app.get('/api/entities/search', async (req, res) => {
 app.get('/api/natural-sources/search', async (req, res) => {
   try {
     const data = await searchNaturalSources(req.query);
-    res.json({ entities: data.rows, totalElements: data.totalElements, totalPages: data.totalPages });
+    res.json({ entities: data.rows, totalElements: data.totalElements });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

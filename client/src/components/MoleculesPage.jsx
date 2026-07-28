@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiPath } from '../apiPath';
-import { Spinner, CatTag, RarityChip, TableWrap, ImpBar, InfoTip, Pagination } from './Shared';
+import { Spinner, CatTag, RarityChip, TableWrap, ImpBar, InfoTip, Pagination, TableSearchBox, normalizeText } from './Shared';
 
 const ROWS_PER_PAGE = 10;
 
@@ -12,6 +12,7 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
   const [page, setPage] = useState(0);
   const [images, setImages] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // A plain <a href="/api/..."> click is a full browser navigation, which
   // sends Accept: text/html - CRA's dev proxy only forwards requests that
@@ -76,6 +77,10 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
     return () => ctrl.abort();
   }, [entity?.name]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery]);
+
   if (!entity) return null;
 
   const maxImp = ranked.length ? ranked[0].importance : 1;
@@ -83,10 +88,13 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
   const rareCount = ranked.filter((r) => r.df > 1 && r.df <= 5).length;
   const totalScore = ranked.reduce((s, r) => s + r.importance, 0);
 
-  const pageCount = Math.max(1, Math.ceil(ranked.length / ROWS_PER_PAGE));
+  const q = normalizeText(searchQuery);
+  const filteredRanked = q ? ranked.filter((r) => normalizeText(r.name).includes(q)) : ranked;
+
+  const pageCount = Math.max(1, Math.ceil(filteredRanked.length / ROWS_PER_PAGE));
   const safePage = Math.min(page, pageCount - 1);
   const startIndex = safePage * ROWS_PER_PAGE;
-  const visibleRows = ranked.slice(startIndex, startIndex + ROWS_PER_PAGE);
+  const visibleRows = filteredRanked.slice(startIndex, startIndex + ROWS_PER_PAGE);
 
   return (
     <div>
@@ -234,7 +242,13 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
             </div>
           </div>
 
-          <TableWrap title={`Flavor Molecules in ${entity.name}`}>
+          <TableWrap
+            title={`Flavor Molecules in ${entity.name}`}
+            search={<TableSearchBox value={searchQuery} onChange={setSearchQuery} placeholder="Search flavor molecules…" />}
+          >
+            {searchQuery && filteredRanked.length === 0 ? (
+              <div className="fdb-empty-box">No flavor molecules match "{searchQuery}".</div>
+            ) : (
             <table className="fdb-table">
               <thead>
                 <tr>
@@ -320,14 +334,17 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
                 })}
               </tbody>
             </table>
+            )}
 
-            <Pagination
-              page={safePage}
-              totalPages={pageCount}
-              onPageChange={setPage}
-              totalElements={ranked.length}
-              pageSize={ROWS_PER_PAGE}
-            />
+            {filteredRanked.length > 0 && (
+              <Pagination
+                page={safePage}
+                totalPages={pageCount}
+                onPageChange={setPage}
+                totalElements={filteredRanked.length}
+                pageSize={ROWS_PER_PAGE}
+              />
+            )}
           </TableWrap>
         </>
       )}

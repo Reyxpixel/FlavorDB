@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiPath } from '../apiPath';
-import { CatTag, TableWrap, Pagination } from './Shared';
+import { CatTag, TableWrap, Pagination, TableSearchBox } from './Shared';
 import { catColor } from '../categories';
 import PairingsPage from './PairingsPage';
 
@@ -374,80 +374,136 @@ function JsmeEditor({ onSmilesChange }) {
   );
 }
 
-function ResultPagination({ page, totalPages, onPageChange, totalElements }) {
-  return (
-    <Pagination
-      page={page}
-      totalPages={totalPages}
-      onPageChange={onPageChange}
-      totalElements={totalElements}
-      pageSize={PAGE_SIZE}
-    />
-  );
-}
+// Both results tables below receive the FULL matching set (see
+// runEntitySearch/runSourceSearch) and manage their own page + search-box
+// state locally, so "search within these results" filters every match,
+// not just whatever page happened to be showing.
+function EntityResults({ rows = [], onOpenMolecules, onOpenPairings }) {
+  const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
-function EntityResults({ rows = [], totalElements = 0, page = 0, totalPages = 1, onPageChange, onOpenMolecules, onOpenPairings }) {
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery]);
+
   if (!rows.length) return null;
+
+  const q = normalize(searchQuery);
+  const filtered = q
+    ? rows.filter((ent) =>
+        normalize(ent.name).includes(q) ||
+        normalize(ent.category).includes(q) ||
+        normalize(ent.source).includes(q)
+      )
+    : rows;
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const startIndex = safePage * PAGE_SIZE;
+  const visibleRows = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
   return (
-    <TableWrap title="Results" meta="Click Entity Name for more info">
-      <table className="fdb-table">
-        <thead>
-          <tr>
-            <th>Entity Name</th>
-            <th>Category</th>
-            <th>Natural Source</th>
-            <th className="right" style={{ width: 90 }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((ent) => (
-            <tr key={ent.id}>
-              <td>
-                <button type="button" className="ent-link" onClick={() => onOpenMolecules(ent)}>
-                  {ent.name}
-                </button>
-              </td>
-              <td><CatTag category={ent.category} /></td>
-              <td>{ent.source || '—'}</td>
-              <td className="right"><button type="button" className="pair-link" onClick={() => onOpenPairings(ent)}>Pair It</button></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ResultPagination page={page} totalPages={totalPages} onPageChange={onPageChange} totalElements={totalElements} />
+    <TableWrap
+      title="Results"
+      meta="Click Entity Name for more info"
+      search={<TableSearchBox value={searchQuery} onChange={setSearchQuery} placeholder="Search these results…" />}
+    >
+      {filtered.length === 0 ? (
+        <div className="fdb-empty-box">No results match "{searchQuery}".</div>
+      ) : (
+        <>
+          <table className="fdb-table">
+            <thead>
+              <tr>
+                <th>Entity Name</th>
+                <th>Category</th>
+                <th>Natural Source</th>
+                <th className="right" style={{ width: 90 }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.map((ent) => (
+                <tr key={ent.id}>
+                  <td>
+                    <button type="button" className="ent-link" onClick={() => onOpenMolecules(ent)}>
+                      {ent.name}
+                    </button>
+                  </td>
+                  <td><CatTag category={ent.category} /></td>
+                  <td>{ent.source || '—'}</td>
+                  <td className="right"><button type="button" className="pair-link" onClick={() => onOpenPairings(ent)}>Pair It</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Pagination page={safePage} totalPages={pageCount} onPageChange={setPage} totalElements={filtered.length} pageSize={PAGE_SIZE} />
+        </>
+      )}
     </TableWrap>
   );
 }
 
-function SourceResults({ rows = [], totalElements = 0, page = 0, totalPages = 1, onPageChange, onOpenMolecules, onOpenPairings }) {
+function SourceResults({ rows = [], onOpenMolecules, onOpenPairings }) {
+  const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery]);
+
   if (!rows.length) return null;
+
+  const q = normalize(searchQuery);
+  const filtered = q
+    ? rows.filter((ent) =>
+        normalize(ent.name).includes(q) ||
+        normalize(ent.category).includes(q) ||
+        normalize(ent.source).includes(q)
+      )
+    : rows;
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const startIndex = safePage * PAGE_SIZE;
+  const visibleRows = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
   return (
-    <TableWrap title="Results" meta="Click Natural Source for more info">
-      <table className="fdb-table">
-        <thead>
-          <tr>
-            <th>Natural Source</th>
-            <th>Category</th>
-            <th>Entity Name</th>
-            <th className="right" style={{ width: 90 }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((ent) => (
-            <tr key={ent.id}>
-              <td>{ent.source || '—'}</td>
-              <td><CatTag category={ent.category} /></td>
-              <td>
-                <button type="button" className="ent-link" onClick={() => onOpenMolecules(ent)}>
-                  {ent.name}
-                </button>
-              </td>
-              <td className="right"><button type="button" className="pair-link" onClick={() => onOpenPairings(ent)}>Pair It</button></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ResultPagination page={page} totalPages={totalPages} onPageChange={onPageChange} totalElements={totalElements} />
+    <TableWrap
+      title="Results"
+      meta="Click Natural Source for more info"
+      search={<TableSearchBox value={searchQuery} onChange={setSearchQuery} placeholder="Search these results…" />}
+    >
+      {filtered.length === 0 ? (
+        <div className="fdb-empty-box">No results match "{searchQuery}".</div>
+      ) : (
+        <>
+          <table className="fdb-table">
+            <thead>
+              <tr>
+                <th>Natural Source</th>
+                <th>Category</th>
+                <th>Entity Name</th>
+                <th className="right" style={{ width: 90 }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.map((ent) => (
+                <tr key={ent.id}>
+                  <td>{ent.source || '—'}</td>
+                  <td><CatTag category={ent.category} /></td>
+                  <td>
+                    <button type="button" className="ent-link" onClick={() => onOpenMolecules(ent)}>
+                      {ent.name}
+                    </button>
+                  </td>
+                  <td className="right"><button type="button" className="pair-link" onClick={() => onOpenPairings(ent)}>Pair It</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Pagination page={safePage} totalPages={pageCount} onPageChange={setPage} totalElements={filtered.length} pageSize={PAGE_SIZE} />
+        </>
+      )}
     </TableWrap>
   );
 }
@@ -483,9 +539,6 @@ export default function SearchPage({
   const [entityLoading, setEntityLoading] = useState(false);
   const [entityError, setEntityError] = useState('');
   const [entitySubmitted, setEntitySubmitted] = useState(false);
-  const [entityPage, setEntityPage] = useState(0);
-  const [entityTotalPages, setEntityTotalPages] = useState(1);
-  const [entityTotal, setEntityTotal] = useState(0);
 
   // Natural source tab
   const [sourceQuery, setSourceQuery] = useState('');
@@ -493,9 +546,6 @@ export default function SearchPage({
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceError, setSourceError] = useState('');
   const [sourceSubmitted, setSourceSubmitted] = useState(false);
-  const [sourcePage, setSourcePage] = useState(0);
-  const [sourceTotalPages, setSourceTotalPages] = useState(1);
-  const [sourceTotal, setSourceTotal] = useState(0);
 
   // Pairing tab
   const [pairQuery, setPairQuery] = useState('');
@@ -518,7 +568,10 @@ export default function SearchPage({
     onOpenMoleculeResults(molForm);
   };
 
-  const runEntitySearch = async (page = 0) => {
+  // Fetches the full matching set in one call - EntityResults/SourceResults
+  // paginate and filter it entirely client-side, so a search box on those
+  // results actually searches every match rather than just the first page.
+  const runEntitySearch = async () => {
     setEntityLoading(true);
     setEntityError('');
     setEntitySubmitted(true);
@@ -526,54 +579,40 @@ export default function SearchPage({
       const params = new URLSearchParams();
       if (entityQuery.trim()) params.set('entity_alias', entityQuery.trim());
       if (entityCategory.trim()) params.set('category', entityCategory.trim());
-      params.set('page', String(page));
-      params.set('size', String(PAGE_SIZE));
       const res = await fetch(apiPath(`/api/entities/search?${params.toString()}`));
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Search failed');
 
       const results = data.entities || [];
-      if (results.length === 1 && page === 0) {
+      if (results.length === 1) {
         onOpenMolecules(results[0]);
         setEntityLoading(false);
         return;
       }
 
       setEntityResults(results);
-      setEntityTotal(data.totalElements || 0);
-      setEntityTotalPages(data.totalPages || 1);
-      setEntityPage(page);
     } catch (err) {
       setEntityError(err.message || 'Search failed');
       setEntityResults([]);
-      setEntityTotal(0);
-      setEntityTotalPages(1);
     } finally {
       setEntityLoading(false);
     }
   };
 
-  const runSourceSearch = async (page = 0) => {
+  const runSourceSearch = async () => {
     setSourceLoading(true);
     setSourceError('');
     setSourceSubmitted(true);
     try {
       const params = new URLSearchParams();
       if (sourceQuery.trim()) params.set('natural_source_name', sourceQuery.trim());
-      params.set('page', String(page));
-      params.set('size', String(PAGE_SIZE));
       const res = await fetch(apiPath(`/api/natural-sources/search?${params.toString()}`));
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Search failed');
       setSourceResults(data.entities || []);
-      setSourceTotal(data.totalElements || 0);
-      setSourceTotalPages(data.totalPages || 1);
-      setSourcePage(page);
     } catch (err) {
       setSourceError(err.message || 'Search failed');
       setSourceResults([]);
-      setSourceTotal(0);
-      setSourceTotalPages(1);
     } finally {
       setSourceLoading(false);
     }
@@ -583,7 +622,7 @@ export default function SearchPage({
     const q = pairQuery.trim();
     if (!q) return;
     try {
-      const res = await fetch(apiPath(`/api/entities/search?entity_alias=${encodeURIComponent(q)}&page=0&size=8`));
+      const res = await fetch(apiPath(`/api/entities/search?entity_alias=${encodeURIComponent(q)}`));
       const data = await res.json();
       const ent = Array.isArray(data.entities) ? data.entities[0] : null;
       if (!ent) throw new Error('No entity found');
@@ -733,7 +772,7 @@ export default function SearchPage({
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              runEntitySearch(0);
+              runEntitySearch();
             }}
           >
             <div className="fdb-search-banner">
@@ -774,10 +813,6 @@ export default function SearchPage({
             {entitySubmitted && entityResults.length > 0 && (
               <EntityResults
                 rows={entityResults}
-                totalElements={entityTotal}
-                page={entityPage}
-                totalPages={entityTotalPages}
-                onPageChange={runEntitySearch}
                 onOpenMolecules={onOpenMolecules}
                 onOpenPairings={onOpenPairings}
               />
@@ -792,7 +827,7 @@ export default function SearchPage({
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              runSourceSearch(0);
+              runSourceSearch();
             }}
           >
             <div className="fdb-search-banner">
@@ -815,10 +850,6 @@ export default function SearchPage({
             {sourceSubmitted && sourceResults.length > 0 && (
               <SourceResults
                 rows={sourceResults}
-                totalElements={sourceTotal}
-                page={sourcePage}
-                totalPages={sourceTotalPages}
-                onPageChange={runSourceSearch}
                 onOpenMolecules={onOpenMolecules}
                 onOpenPairings={onOpenPairings}
               />

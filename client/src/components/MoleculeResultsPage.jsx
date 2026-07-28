@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiPath } from '../apiPath';
-import { Spinner, TableWrap, formatTags, Pagination } from './Shared';
+import { Spinner, TableWrap, formatTags, Pagination, TableSearchBox, normalizeText } from './Shared';
 
 const PAGE_SIZE = 20;
 
@@ -25,26 +25,37 @@ function describeQuery(query) {
   return parts.length ? parts.join(' · ') : 'All molecules';
 }
 
+function matchesSearch(row, q) {
+  if (!q) return true;
+  if (normalizeText(row.name).includes(q)) return true;
+  if (normalizeText(row.flavor_profile).includes(q)) return true;
+  if (String(row.pubchem_id || '').includes(q)) return true;
+  return false;
+}
+
 export default function MoleculeResultsPage({ query, onBack, onOpenMolecule }) {
-  const [rows, setRows] = useState([]);
+  const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError('');
+    setSearchQuery('');
+    setPage(0);
 
     const params = new URLSearchParams();
     Object.entries(query || {}).forEach(([k, v]) => {
       if (v !== '' && v != null) params.set(k, v);
     });
-    params.set('page', String(page));
-    params.set('size', String(PAGE_SIZE));
 
+    // Fetches the full matching set in one call rather than one page at a
+    // time - pagination and the search box below both operate on it
+    // entirely client-side, so "search within results" actually searches
+    // every match, not just whatever page happens to be on screen.
     fetch(apiPath(`/api/flavor-molecules/search?${params.toString()}`))
       .then(async (res) => {
         const data = await res.json();
@@ -53,16 +64,12 @@ export default function MoleculeResultsPage({ query, onBack, onOpenMolecule }) {
       })
       .then((data) => {
         if (cancelled) return;
-        setRows(data.molecules || []);
-        setTotalElements(data.totalElements || 0);
-        setTotalPages(data.totalPages || 1);
+        setAllRows(data.molecules || []);
       })
       .catch((err) => {
         if (cancelled) return;
         setError(err.message || 'Search failed');
-        setRows([]);
-        setTotalElements(0);
-        setTotalPages(1);
+        setAllRows([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -71,9 +78,19 @@ export default function MoleculeResultsPage({ query, onBack, onOpenMolecule }) {
     return () => {
       cancelled = true;
     };
-  }, [query, page]);
+  }, [query]);
 
-  const safeTotal = Math.max(1, totalPages || 1);
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery]);
+
+  const q = normalizeText(searchQuery);
+  const filteredRows = q ? allRows.filter((row) => matchesSearch(row, q)) : allRows;
+
+  const pageCount = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const startIndex = safePage * PAGE_SIZE;
+  const visibleRows = filteredRows.slice(startIndex, startIndex + PAGE_SIZE);
 
   return (
     <div>
@@ -95,65 +112,75 @@ export default function MoleculeResultsPage({ query, onBack, onOpenMolecule }) {
       {loading && <Spinner text="Searching flavor molecules…" />}
       {error && <div className="fdb-error-box">{error}</div>}
 
-      {!loading && !error && rows.length === 0 && (
+      {!loading && !error && allRows.length === 0 && (
         <div className="fdb-empty-box">No molecules matched your query.</div>
       )}
 
-      {!loading && !error && rows.length > 0 && (
-        <TableWrap title="Results" meta={`Found ${totalElements} molecules`}>
-          <table className="fdb-table">
-            <thead>
-              <tr>
-                <th>Common Name</th>
-                <th>PubChem ID</th>
-                <th>Flavor Profile</th>
-                <th className="right">More Info.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.pubchem_id}>
-                  <td>
-                    {onOpenMolecule ? (
-                      <button type="button" className="ent-link" onClick={() => onOpenMolecule(row)}>
-                        {row.name || '—'}
-                      </button>
-                    ) : (
-                      row.name || '—'
-                    )}
-                  </td>
-                  <td>
-                    <a
-                      className="ent-link mono"
-                      href={`https://pubchem.ncbi.nlm.nih.gov/compound/${row.pubchem_id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {row.pubchem_id}
-                    </a>
-                  </td>
-                  <td>{formatTags(row.flavor_profile)}</td>
-                  <td className="right">
-                    <button
-                      type="button"
-                      className="btn fdb-moreinfo-btn"
-                      onClick={() => onOpenMolecule && onOpenMolecule(row)}
-                    >
-                      More info.
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {!loading && !error && allRows.length > 0 && (
+        <TableWrap
+          title="Results"
+          meta={`Found ${allRows.length} molecules`}
+          search={<TableSearchBox value={searchQuery} onChange={setSearchQuery} placeholder="Search these results…" />}
+        >
+          {filteredRows.length === 0 ? (
+            <div className="fdb-empty-box">No results match "{searchQuery}".</div>
+          ) : (
+            <>
+              <table className="fdb-table">
+                <thead>
+                  <tr>
+                    <th>Common Name</th>
+                    <th>PubChem ID</th>
+                    <th>Flavor Profile</th>
+                    <th className="right">More Info.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRows.map((row) => (
+                    <tr key={row.pubchem_id}>
+                      <td>
+                        {onOpenMolecule ? (
+                          <button type="button" className="ent-link" onClick={() => onOpenMolecule(row)}>
+                            {row.name || '—'}
+                          </button>
+                        ) : (
+                          row.name || '—'
+                        )}
+                      </td>
+                      <td>
+                        <a
+                          className="ent-link mono"
+                          href={`https://pubchem.ncbi.nlm.nih.gov/compound/${row.pubchem_id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {row.pubchem_id}
+                        </a>
+                      </td>
+                      <td>{formatTags(row.flavor_profile)}</td>
+                      <td className="right">
+                        <button
+                          type="button"
+                          className="btn fdb-moreinfo-btn"
+                          onClick={() => onOpenMolecule && onOpenMolecule(row)}
+                        >
+                          More info.
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-          <Pagination
-            page={page}
-            totalPages={safeTotal}
-            onPageChange={setPage}
-            totalElements={totalElements}
-            pageSize={PAGE_SIZE}
-          />
+              <Pagination
+                page={safePage}
+                totalPages={pageCount}
+                onPageChange={setPage}
+                totalElements={filteredRows.length}
+                pageSize={PAGE_SIZE}
+              />
+            </>
+          )}
         </TableWrap>
       )}
     </div>
