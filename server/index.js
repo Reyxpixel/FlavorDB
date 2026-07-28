@@ -1592,6 +1592,41 @@ async function searchMoleculesRoute(query) {
 // for the same ingredient, so either static path works once resolved.
 const FLAVORDB_SITE = 'https://cosylab.iiitd.edu.in';
 
+// The taxonomy hierarchy (Kingdom/Clade/Order/Family/.../Genus) isn't part of
+// the REST API at all - it only exists rendered into flavordb2's own
+// entity_details HTML page. Scraped the same way molecule detail pages
+// already are: regex over the raw HTML rather than a DOM parser (no jsdom
+// dependency actually installed). The page has two tables - this one (no
+// id) and the flavor molecule list (id="molecules") further down - so only
+// the region before that second table is searched.
+function parseEntityTaxonomyHtml(html) {
+  try {
+    const moleculesIdx = html.indexOf('id="molecules"');
+    const searchRegion = moleculesIdx === -1 ? html : html.slice(0, moleculesIdx);
+    const firstTableIdx = searchRegion.indexOf('<table');
+    if (firstTableIdx === -1) return [];
+    const tableHtml = searchRegion.slice(firstTableIdx);
+
+    const out = [];
+    for (const rowMatch of tableHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
+      const cells = [...rowMatch[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)];
+      if (cells.length < 2) continue;
+
+      const label = cells[0][1].replace(/<[^>]+>/g, '').replace(/:\s*$/, '').trim();
+      const rawValue = cells[1][1];
+      const linkMatch = rawValue.match(/<a[^>]*href="([^"]+)"[^>]*>/i);
+      const value = rawValue.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+      if (!label || !value) continue;
+      out.push({ label, value, url: linkMatch ? linkMatch[1] : null });
+    }
+    return out;
+  } catch (err) {
+    console.warn('parseEntityTaxonomyHtml failed:', err.message);
+    return [];
+  }
+}
+
 async function resolveEntityImageInfo(name) {
   const q = normalizeText(name);
   if (!q) return null;
@@ -1616,13 +1651,33 @@ async function resolveEntityImageInfo(name) {
       if (!match || match.entity_id == null) return null;
 
       const entityId = match.entity_id;
-      return {
+      const result = {
         entityId,
         imageUrl: `${FLAVORDB_SITE}/flavordb2/static/entities_images/${entityId}.jpg`,
         naturalSourceImageUrl: `${FLAVORDB_SITE}/flavordb2/static/natural_source_images/${entityId}.jpg`,
         naturalSourceName: match.natural_source_name || '',
         naturalSourceUrl: match.natural_source_url || '',
+        entityUrl: match.entity_alias_url || '',
+        synonyms: match.entity_alias_synonyms || '',
+        // Routed through our own backend (see /api/entity-download below)
+        // rather than linking directly at flavordb2 - the <a download> attribute
+        // only forces an actual download for same-origin URLs; for a
+        // cross-origin link browsers just navigate there instead.
+        downloadUrl: `/api/entity-download/${entityId}`,
+        taxonomy: [],
       };
+
+      try {
+        const detailsRes = await axios.get(`${FLAVORDB_SITE}/flavordb2/entity_details`, {
+          params: { id: entityId },
+          timeout: 15000,
+        });
+        result.taxonomy = parseEntityTaxonomyHtml(detailsRes.data);
+      } catch (err) {
+        console.warn('Entity taxonomy fetch failed for', name, err.message);
+      }
+
+      return result;
     } catch (err) {
       console.warn('resolveEntityImageInfo failed for', name, err.message);
       return null;
@@ -1714,6 +1769,21 @@ app.get('/api/natural-sources/search', async (req, res) => {
 app.get('/api/entity-image/:name', async (req, res) => {
   const info = await resolveEntityImageInfo(req.params.name);
   res.json(info || {});
+});
+
+app.get('/api/entity-download/:entityId', async (req, res) => {
+  const { entityId } = req.params;
+  try {
+    const upstream = await axios.get(`${FLAVORDB_SITE}/flavordb2/entities_json`, {
+      params: { id: entityId },
+      timeout: 20000,
+    });
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${entityId}.json"`);
+    res.send(typeof upstream.data === 'string' ? upstream.data : JSON.stringify(upstream.data));
+  } catch (err) {
+    res.status(502).json({ error: 'Failed to fetch entity data for download', detail: err.message });
+  }
 });
 
 

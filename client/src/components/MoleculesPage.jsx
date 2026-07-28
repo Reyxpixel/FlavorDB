@@ -11,6 +11,34 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
   const [progress, setProgress] = useState(null);
   const [page, setPage] = useState(0);
   const [images, setImages] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+
+  // A plain <a href="/api/..."> click is a full browser navigation, which
+  // sends Accept: text/html - CRA's dev proxy only forwards requests that
+  // look like API calls, so it falls back to serving index.html instead of
+  // proxying to the backend (downloads an .htm file with no content).
+  // Fetching the blob ourselves avoids that entirely, in dev and prod alike.
+  async function handleDownload() {
+    if (!images?.downloadUrl) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(apiPath(images.downloadUrl));
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${images.entityId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download entity JSON:', err);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   useEffect(() => {
     if (!entity) return;
@@ -72,54 +100,103 @@ export default function MoleculesPage({ entity, onBack, onPairIt, onOpenMolecule
 
       <div className="fdb-nav-row">
         <button className="btn btn-back" onClick={onBack}>← Back</button>
-        <button className="btn btn-green" onClick={onPairIt}>Pair It →</button>
       </div>
 
       <div className="fdb-page-header">
-        <h2>{entity.name}</h2>
-        <div className="meta">
-          Category: <CatTag category={entity.category} />
-        </div>
-      </div>
-
-      {images && images.imageUrl && (
-        <div className="entity-image-row">
-          <div className="entity-image-card">
-            <img
-              src={images.imageUrl}
-              alt={entity.name}
-              onError={(e) => {
-                const placeholder = 'https://cosylab.iiitd.edu.in/flavordb2/static/images/placeholder.png';
-                if (e.currentTarget.src !== placeholder) e.currentTarget.src = placeholder;
-              }}
-            />
-            <div className="entity-image-caption">{entity.name}</div>
-          </div>
-
-          {images.naturalSourceImageUrl && (
-            <div className="entity-image-card">
-              <img
-                src={images.naturalSourceImageUrl}
-                alt={images.naturalSourceName || 'Natural source'}
-                onError={(e) => {
-                  const placeholder = 'https://cosylab.iiitd.edu.in/flavordb2/static/images/placeholder.png';
-                  if (e.currentTarget.src !== placeholder) e.currentTarget.src = placeholder;
-                }}
-              />
-              <div className="entity-image-caption">
-                Natural Source:{' '}
-                {images.naturalSourceUrl ? (
-                  <a href={images.naturalSourceUrl} target="_blank" rel="noreferrer">
-                    {images.naturalSourceName || 'Link'}
-                  </a>
+        {images && images.imageUrl ? (
+          <div className="entity-detail-grid">
+            <div className="entity-detail-col entity-detail-col--left">
+              <div className="entity-detail-photo">
+                <img
+                  src={images.imageUrl}
+                  alt={entity.name}
+                  onError={(e) => {
+                    const placeholder = 'https://cosylab.iiitd.edu.in/flavordb2/static/images/placeholder.png';
+                    if (e.currentTarget.src !== placeholder) e.currentTarget.src = placeholder;
+                  }}
+                />
+              </div>
+              <div className="entity-detail-name">
+                {images.entityUrl ? (
+                  <a href={images.entityUrl} target="_blank" rel="noreferrer">{entity.name}</a>
                 ) : (
-                  images.naturalSourceName || '—'
+                  entity.name
                 )}
               </div>
+              <div className="entity-detail-line">
+                Category: <CatTag category={entity.category} />
+              </div>
+              {images.synonyms && (
+                <div className="entity-detail-line">Synonyms: <strong>{images.synonyms}</strong></div>
+              )}
+              <button type="button" className="btn entity-detail-btn" onClick={onPairIt}>Pair It</button>
+              {images.downloadUrl && (
+                <button
+                  type="button"
+                  className="btn entity-detail-btn"
+                  onClick={handleDownload}
+                  disabled={downloading}
+                >
+                  {downloading ? 'Downloading…' : 'Download'}
+                </button>
+              )}
             </div>
-          )}
-        </div>
-      )}
+
+            {images.taxonomy && images.taxonomy.length > 0 && (
+              <div className="entity-detail-col entity-detail-col--center">
+                <table className="entity-taxonomy-table">
+                  <tbody>
+                    {images.taxonomy.map((row, i) => (
+                      <tr key={i}>
+                        <td>{row.label}:</td>
+                        <td>
+                          {row.url ? (
+                            <a href={row.url} target="_blank" rel="noreferrer">{row.value}</a>
+                          ) : (
+                            <strong>{row.value}</strong>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {images.naturalSourceImageUrl && (
+              <div className="entity-detail-col entity-detail-col--right">
+                <div className="entity-detail-photo">
+                  <img
+                    src={images.naturalSourceImageUrl}
+                    alt={images.naturalSourceName || 'Natural source'}
+                    onError={(e) => {
+                      const placeholder = 'https://cosylab.iiitd.edu.in/flavordb2/static/images/placeholder.png';
+                      if (e.currentTarget.src !== placeholder) e.currentTarget.src = placeholder;
+                    }}
+                  />
+                </div>
+                <div className="entity-detail-caption">
+                  Natural Source of{' '}
+                  {images.entityUrl ? (
+                    <a href={images.entityUrl} target="_blank" rel="noreferrer">{entity.name}</a>
+                  ) : entity.name}
+                  {' : '}
+                  {images.naturalSourceUrl ? (
+                    <a href={images.naturalSourceUrl} target="_blank" rel="noreferrer">{images.naturalSourceName}</a>
+                  ) : images.naturalSourceName}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <h2>{entity.name}</h2>
+            <div className="meta">
+              Category: <CatTag category={entity.category} />
+            </div>
+          </>
+        )}
+      </div>
 
       {loading && <Spinner text={`Loading flavor molecules for ${entity.name}…`} progress={progress} />}
       {error && <p style={{ color: '#c62828', padding: '0.5rem 0' }}>Error: {error}</p>}
